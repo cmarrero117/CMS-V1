@@ -1,5 +1,5 @@
 import { getSession } from 'next-auth/react'
-import dbConnect from '../../lib/dbConnect'
+import dbConnect from '../../lib/db'
 import User from '../../lib/models/User'
 import bcrypt from 'bcryptjs'
 
