@@ -10,7 +10,7 @@ export default function ClientsPage({ clients }) {
       {clients.length === 0 && <p>No clients yet.</p>}
       <ul>
         {clients.map(c => (
-          <li key={c._id}>{c.name} — {c.email}</li>
+          <li key={c._id}>{c.name || '(no name)'} — {c.email}</li>
         ))}
       </ul>
       <a href="/admin/clients/new">+ Add New Client</a>
@@ -31,8 +31,8 @@ export async function getServerSideProps(context) {
     props: {
       clients: clients.map(c => ({
         _id: c._id.toString(),
-        name: c.name,
-        email: c.email,
+        name: c.name || null,
+        email: c.email || null,
       }))
     }
   }
