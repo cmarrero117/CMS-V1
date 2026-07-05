@@ -1,4 +1,7 @@
-import { getSession } from 'next-auth/react'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from './api/auth/[...nextauth]'
+import dbConnect from '../../lib/db'
+import User from '../../lib/models/User'
 
 export default function ClientsPage({ clients }) {
   return (
@@ -7,7 +10,7 @@ export default function ClientsPage({ clients }) {
       {clients.length === 0 && <p>No clients yet.</p>}
       <ul>
         {clients.map(c => (
-          <li key={c._id}>{c.name} — {c.email} — <a href={`/admin/clients/${c.slug}`}>Manage</a></li>
+          <li key={c._id}>{c.name} — {c.email}</li>
         ))}
       </ul>
       <a href="/admin/clients/new">+ Add New Client</a>
@@ -16,10 +19,21 @@ export default function ClientsPage({ clients }) {
 }
 
 export async function getServerSideProps(context) {
-  const session = await getSession(context)
+  const session = await getServerSession(context.req, context.res, authOptions)
   if (!session || session.user.role !== 'admin') {
     return { redirect: { destination: '/login', permanent: false } }
   }
-  // Will fetch from DB in next step
-  return { props: { clients: [] } }
+
+  await dbConnect()
+  const clients = await User.find({ role: 'client' }).select('-password').lean()
+
+  return {
+    props: {
+      clients: clients.map(c => ({
+        _id: c._id.toString(),
+        name: c.name,
+        email: c.email,
+      }))
+    }
+  }
 }
