@@ -1,4 +1,5 @@
-import { getSession } from 'next-auth/react'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '../../lib/authOptions'
 
 export default function AdminDashboard({ session }) {
   return (
@@ -7,13 +8,21 @@ export default function AdminDashboard({ session }) {
       <p>Welcome, {session?.user?.email}</p>
       <ul>
         <li><a href="/admin/clients">Manage Clients</a></li>
+        <li>
+          <a
+            href="/client/preview"
+            style={{ color: '#b45309' }}
+          >
+            ⚠️ Preview Client Dashboard
+          </a>
+        </li>
       </ul>
     </div>
   )
 }
 
 export async function getServerSideProps(context) {
-  const session = await getSession(context)
+  const session = await getServerSession(context.req, context.res, authOptions)
   if (!session || session.user.role !== 'admin') {
     return { redirect: { destination: '/login', permanent: false } }
   }
