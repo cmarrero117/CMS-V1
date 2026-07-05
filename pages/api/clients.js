@@ -1,10 +1,11 @@
-import { getSession } from 'next-auth/react'
+import { getServerSession } from 'next-auth/next'
+import authOptions from './auth/[...nextauth]'
 import dbConnect from '../../lib/db'
 import User from '../../lib/models/User'
 import bcrypt from 'bcryptjs'
 
 export default async function handler(req, res) {
-  const session = await getSession({ req })
+  const session = await getServerSession(req, res, authOptions)
 
   if (!session || session.user.role !== 'admin') {
     return res.status(401).json({ error: 'Unauthorized' })
