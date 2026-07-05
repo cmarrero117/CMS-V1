@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 import connectDB from '../../../lib/db'
 import User from '../../../lib/models/User'
 
-export default NextAuth({
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -45,4 +45,6 @@ export default NextAuth({
     signIn: '/login'
   },
   secret: process.env.NEXTAUTH_SECRET
-})
+}
+
+export default NextAuth(authOptions)
