@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
-import { getSession } from 'next-auth/react'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '../../../lib/authOptions'
 
 export default function NewClient() {
   const router = useRouter()
@@ -85,7 +86,7 @@ export default function NewClient() {
 }
 
 export async function getServerSideProps(context) {
-  const session = await getSession(context)
+  const session = await getServerSession(context.req, context.res, authOptions)
   if (!session || session.user.role !== 'admin') {
     return { redirect: { destination: '/login', permanent: false } }
   }
