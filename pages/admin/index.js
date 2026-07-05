@@ -1,11 +1,11 @@
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../lib/authOptions'
 
-export default function AdminDashboard({ session }) {
+export default function AdminDashboard({ adminEmail }) {
   return (
     <div style={{ fontFamily: 'sans-serif', padding: '2rem' }}>
       <h1>Admin Dashboard</h1>
-      <p>Welcome, {session?.user?.email}</p>
+      <p>Welcome, {adminEmail}</p>
       <ul>
         <li><a href="/admin/clients">Manage Clients</a></li>
         <li>
@@ -26,5 +26,9 @@ export async function getServerSideProps(context) {
   if (!session || session.user.role !== 'admin') {
     return { redirect: { destination: '/login', permanent: false } }
   }
-  return { props: { session } }
+  return {
+    props: {
+      adminEmail: session.user.email ?? null,
+    }
+  }
 }
