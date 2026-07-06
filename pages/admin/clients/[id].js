@@ -17,12 +17,19 @@ const LABELS = {
 export default function ClientContentPage({ client, content, siteSlug }) {
   return (
     <div style={{ fontFamily: 'sans-serif', padding: '2rem', maxWidth: '700px' }}>
-      <Link href="/admin/clients" style={{ color: '#0070f3', fontSize: '0.875rem' }}>
-        ← Back to All Clients
-      </Link>
+
+      {/* Navigation breadcrumb row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <Link href="/admin" style={{ color: '#0070f3', fontSize: '0.875rem', textDecoration: 'none' }}>
+          ← Back to Admin
+        </Link>
+        <span style={{ color: '#ccc', fontSize: '0.875rem' }}>|</span>
+        <Link href="/admin/clients" style={{ color: '#0070f3', fontSize: '0.875rem', textDecoration: 'none' }}>
+          All Clients
+        </Link>
+      </div>
 
       <div style={{
-        marginTop: '1.5rem',
         marginBottom: '2rem',
         padding: '1rem',
         background: '#f5f5f5',
