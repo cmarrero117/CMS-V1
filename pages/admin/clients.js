@@ -28,6 +28,14 @@ export default function ClientsPage({ clients: initialClients }) {
 
   return (
     <div style={{ fontFamily: 'sans-serif', padding: '2rem' }}>
+
+      {/* Back to Admin */}
+      <div style={{ marginBottom: '1.25rem' }}>
+        <Link href="/admin" style={{ color: '#0070f3', fontSize: '0.875rem', textDecoration: 'none' }}>
+          ← Back to Admin
+        </Link>
+      </div>
+
       <h1>All Clients</h1>
       {clients.length === 0 && <p style={{ color: '#888' }}>No clients yet.</p>}
       <ul style={{ listStyle: 'none', padding: 0 }}>
