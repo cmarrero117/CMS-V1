@@ -3,11 +3,13 @@ import { signOut } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../lib/authOptions'
+import { parse as parseCookies } from 'cookie'
+import { serialize } from 'cookie'
 import dbConnect from '../../lib/db'
 import SiteContent from '../../lib/models/SiteContent'
 import Tenant from '../../lib/models/Tenant'
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+// ─── Styles ─────────────────────────────────────────────────────────────────────
 const s = {
   page:        { fontFamily: 'system-ui, sans-serif', padding: '2rem', maxWidth: '780px', margin: '0 auto', color: '#1a1a1a' },
   header:      { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' },
@@ -81,14 +83,19 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
     }
   }
 
+  const handleExitImpersonation = async () => {
+    await fetch('/api/admin/impersonate-exit', { method: 'POST' })
+    router.push('/admin')
+  }
+
   return (
     <div style={s.page}>
 
-      {/* Admin banner */}
+      {/* Admin impersonation banner */}
       {viewerRole === 'admin' && (
         <div style={s.adminBanner}>
-          <span style={s.adminText}>👁 Viewing as admin — changes here <em>are</em> saved.</span>
-          <button style={s.backBtn} onClick={() => router.push('/admin')}>← Back to Admin</button>
+          <span style={s.adminText}>👁 Viewing as admin — changes here <em>are</em> saved to this client’s account.</span>
+          <button style={s.backBtn} onClick={handleExitImpersonation}>← Back to Admin</button>
         </div>
       )}
 
@@ -98,10 +105,12 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           <h1 style={s.name}>Welcome, {clientName || clientEmail}</h1>
           <p style={s.email}>{clientEmail}</p>
         </div>
-        <button style={s.logoutBtn} onClick={() => signOut({ callbackUrl: '/login' })}>Log Out</button>
+        {viewerRole !== 'admin' && (
+          <button style={s.logoutBtn} onClick={() => signOut({ callbackUrl: '/login' })}>Log Out</button>
+        )}
       </div>
 
-      {/* ── CONTENT SECTION ───────────────────────────────────────── */}
+      {/* ── CONTENT SECTION ──────────────────────────────────────────────────── */}
       <div style={s.section}>
         <h2 style={s.sectionHead}>Content</h2>
 
@@ -171,7 +180,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
         </Field>
       </div>
 
-      {/* ── SEO SECTION ───────────────────────────────────────────── */}
+      {/* ── SEO SECTION ───────────────────────────────────────────────────── */}
       <div style={s.section}>
         <h2 style={s.sectionHead}>SEO &amp; Social</h2>
 
@@ -200,7 +209,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
         </Field>
       </div>
 
-      {/* ── SAVE ALL ──────────────────────────────────────────────── */}
+      {/* ── SAVE ALL ───────────────────────────────────────────────────────── */}
       <div style={s.saveBar}>
         <button
           style={{ ...s.saveBtn, opacity: saveState === 'saving' ? 0.7 : 1 }}
@@ -217,7 +226,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
   )
 }
 
-// ─── Helper component ─────────────────────────────────────────────────────────
+// ─── Helper component ─────────────────────────────────────────────────────────────────
 function Field({ label, hint, children }) {
   return (
     <div style={{ marginBottom: '1.25rem' }}>
@@ -228,7 +237,7 @@ function Field({ label, hint, children }) {
   )
 }
 
-// ─── Server-side data fetch ───────────────────────────────────────────────────
+// ─── Server-side data fetch ─────────────────────────────────────────────────────────────
 export async function getServerSideProps(context) {
   const session = await getServerSession(context.req, context.res, authOptions)
 
@@ -238,20 +247,27 @@ export async function getServerSideProps(context) {
 
   await dbConnect()
 
-  // Find the tenant for this session user
-  const tenant = await Tenant.findById(session.user.tenantId).lean()
-  if (!tenant) {
-    // Admin without a tenantId — redirect to admin panel
-    if (session.user.role === 'admin') {
+  let tenantId = session.user.tenantId
+
+  // Admin impersonation: check for the cookie set by /api/admin/impersonate
+  if (session.user.role === 'admin') {
+    const cookies = parseCookies(context.req.headers.cookie || '')
+    if (cookies.adminViewingTenantId) {
+      tenantId = cookies.adminViewingTenantId
+    } else {
+      // Admin with no impersonation cookie — redirect back to admin panel
       return { redirect: { destination: '/admin', permanent: false } }
     }
-    return { redirect: { destination: '/login', permanent: false } }
+  }
+
+  const tenant = await Tenant.findById(tenantId).lean()
+  if (!tenant) {
+    return { redirect: { destination: session.user.role === 'admin' ? '/admin' : '/login', permanent: false } }
   }
 
   // Fetch existing saved content for this tenant
   const existing = await SiteContent.findOne({ tenantId: tenant._id }).lean()
 
-  // Serialize — convert ObjectIds and Dates to strings for Next.js props
   const initialContent = {
     businessName:    existing?.businessName    || '',
     heroHeadline:    existing?.heroHeadline    || '',
@@ -271,10 +287,23 @@ export async function getServerSideProps(context) {
     ogImageUrl:      existing?.ogImageUrl      || '',
   }
 
+  // Resolve client name/email from the tenant for admin view
+  let clientEmail = session.user.email
+  let clientName  = session.user.name || null
+
+  if (session.user.role === 'admin') {
+    const User = (await import('../../lib/models/User')).default
+    const clientUser = await User.findOne({ tenantId: tenant._id, role: 'client' }).select('name email').lean()
+    if (clientUser) {
+      clientEmail = clientUser.email
+      clientName  = clientUser.name || null
+    }
+  }
+
   return {
     props: {
-      clientEmail:    session.user.email,
-      clientName:     session.user.name || null,
+      clientEmail,
+      clientName,
       siteSlug:       tenant.slug,
       initialContent,
       viewerRole:     session.user.role,
