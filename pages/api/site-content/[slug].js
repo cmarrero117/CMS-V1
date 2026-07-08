@@ -65,6 +65,9 @@ export default async function handler(req, res) {
     } = req.body
 
     const update = {
+      // ← FIX: include required fields so upsert (first-save) succeeds
+      siteSlug: slug,
+      tenantId: tenant._id,
       businessName,
       heroHeadline,
       heroSubheadline,
