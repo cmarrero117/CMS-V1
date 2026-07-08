@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../../lib/authOptions'
 import dbConnect from '../../../lib/db'
@@ -15,7 +16,10 @@ const s = {
   clientName: { margin: '0 0 0.2rem', fontSize: '1.4rem', fontWeight: 700 },
   clientMeta: { margin: 0, color: '#666', fontSize: '0.9rem' },
   slugBadge:  { margin: '0.3rem 0 0', fontSize: '0.78rem', color: '#999', fontFamily: 'monospace' },
-  liveBtn:    { display: 'inline-block', padding: '0.4rem 0.9rem', background: '#16a34a', color: '#fff', borderRadius: '5px', textDecoration: 'none', fontSize: '0.875rem' },
+  btnGroup:   { display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' },
+  liveBtn:    { display: 'inline-block', padding: '0.4rem 0.9rem', background: '#16a34a', color: '#fff', borderRadius: '5px', textDecoration: 'none', fontSize: '0.875rem', textAlign: 'center' },
+  viewBtn:    { display: 'inline-block', padding: '0.4rem 0.9rem', background: '#0f172a', color: '#fff', borderRadius: '5px', fontSize: '0.875rem', cursor: 'pointer', border: 'none', textAlign: 'center' },
+  viewBtnBusy:{ display: 'inline-block', padding: '0.4rem 0.9rem', background: '#94a3b8', color: '#fff', borderRadius: '5px', fontSize: '0.875rem', cursor: 'not-allowed', border: 'none', textAlign: 'center' },
   section:    { marginBottom: '2rem' },
   sectionH:   { fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6b7280', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.4rem', marginBottom: '1rem' },
   row:        { marginBottom: '1rem' },
@@ -27,6 +31,7 @@ const s = {
   svcDesc:    { fontSize: '0.875rem', color: '#555' },
   noContent:  { padding: '3rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.95rem' },
   ts:         { marginTop: '0.5rem', fontSize: '0.78rem', color: '#9ca3af' },
+  errMsg:     { marginTop: '0.4rem', fontSize: '0.78rem', color: '#dc2626', textAlign: 'right' },
 }
 
 function Field({ label, value }) {
@@ -42,9 +47,35 @@ function Field({ label, value }) {
 }
 
 export default function ClientContentPage({ client, content, siteSlug, updatedAt }) {
+  const router = useRouter()
+  const [busy, setBusy] = require('react').useState(false)
+  const [err,  setErr]  = require('react').useState('')
+
   const hasAnyContent = content && Object.values(content).some(v =>
     Array.isArray(v) ? v.length > 0 : Boolean(v)
   )
+
+  const handleViewAsClient = async () => {
+    setBusy(true)
+    setErr('')
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client._id }),
+      })
+      if (res.ok) {
+        router.push('/client')
+      } else {
+        const data = await res.json()
+        setErr(data.error || 'Something went wrong.')
+        setBusy(false)
+      }
+    } catch (e) {
+      setErr('Network error.')
+      setBusy(false)
+    }
+  }
 
   return (
     <div style={s.page}>
@@ -66,11 +97,22 @@ export default function ClientContentPage({ client, content, siteSlug, updatedAt
           {siteSlug && <p style={s.slugBadge}>/site/{siteSlug}</p>}
           {updatedAt && <p style={s.ts}>Last saved: {new Date(updatedAt).toLocaleString()}</p>}
         </div>
-        {siteSlug && (
-          <Link href={`/site/${siteSlug}`} target="_blank" rel="noopener noreferrer" style={s.liveBtn}>
-            View Live Site ↗
-          </Link>
-        )}
+
+        <div style={s.btnGroup}>
+          {siteSlug && (
+            <Link href={`/site/${siteSlug}`} target="_blank" rel="noopener noreferrer" style={s.liveBtn}>
+              View Live Site ↗
+            </Link>
+          )}
+          <button
+            style={busy ? s.viewBtnBusy : s.viewBtn}
+            onClick={handleViewAsClient}
+            disabled={busy}
+          >
+            {busy ? 'Loading…' : '👁 View as Client →'}
+          </button>
+          {err && <div style={s.errMsg}>{err}</div>}
+        </div>
       </div>
 
       {!hasAnyContent ? (
@@ -120,12 +162,12 @@ export default function ClientContentPage({ client, content, siteSlug, updatedAt
           {/* ── SEO ── */}
           <div style={s.section}>
             <div style={s.sectionH}>SEO &amp; Social</div>
-            <Field label="Page Title"              value={content.seoTitle} />
-            <Field label="Meta Description"        value={content.seoDescription} />
-            <Field label="Keywords"                value={content.seoKeywords} />
-            <Field label="Social Share Title"      value={content.ogTitle} />
+            <Field label="Page Title"               value={content.seoTitle} />
+            <Field label="Meta Description"         value={content.seoDescription} />
+            <Field label="Keywords"                 value={content.seoKeywords} />
+            <Field label="Social Share Title"       value={content.ogTitle} />
             <Field label="Social Share Description" value={content.ogDescription} />
-            <Field label="Social Share Image URL"  value={content.ogImageUrl} />
+            <Field label="Social Share Image URL"   value={content.ogImageUrl} />
           </div>
         </>
       )}
