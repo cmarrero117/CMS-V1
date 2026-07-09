@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import Head from 'next/head'
 import { getSession } from 'next-auth/react'
 import dbConnect from '../../lib/db'
@@ -22,102 +22,139 @@ const btn = {
     cursor: 'pointer', fontSize: '12px', fontFamily: 'sans-serif',
     display: 'inline-flex', alignItems: 'center', gap: '4px',
   },
-  dark:  { background: '#2a2a3e', color: '#fff' },
-  indigo:{ background: '#4f46e5', color: '#fff', border: 'none' },
-  green: { background: '#10b981', color: '#fff', border: 'none' },
-  red:   { background: '#ef4444', color: '#fff', border: 'none' },
-  white: { background: '#fff',    color: '#4f46e5', border: 'none' },
-  gray:  { background: '#6b7280', color: '#fff', border: 'none' },
+  dark:   { background: '#2a2a3e', color: '#fff' },
+  indigo: { background: '#4f46e5', color: '#fff', border: 'none' },
+  green:  { background: '#10b981', color: '#fff', border: 'none' },
+  red:    { background: '#ef4444', color: '#fff', border: 'none' },
+  white:  { background: '#fff',    color: '#4f46e5', border: 'none' },
+  gray:   { background: '#6b7280', color: '#fff', border: 'none' },
 }
 const mkBtn = (...variants) => Object.assign({}, btn.base, ...variants.map(v => btn[v]))
 
 // ─── EditableText ─────────────────────────────────────────────────────────────
-// FIX: useEffect is guarded by !editing — it will never reset `local` (and
-//      therefore never move the cursor) while the user is actively typing.
-function EditableText({ value, onChange, tag: Tag = 'span', style, editMode, placeholder }) {
+// Uses a plain <input> or <textarea> instead of contentEditable.
+// Native inputs never have cursor-jump issues.
+function EditableText({ value, onChange, multiline = false, style, editMode, placeholder }) {
   const [editing, setEditing]     = useState(false)
   const [local, setLocal]         = useState(value || '')
   const [showFonts, setShowFonts] = useState(false)
   const [font, setFont]           = useState(FONTS[0].value)
-  const elRef                     = useRef(null)
 
-  // Only sync from prop when we are NOT in edit mode — this prevents React
-  // from overwriting the DOM text (and resetting cursor position) mid-keystroke.
-  useEffect(() => {
-    if (!editing) setLocal(value || '')
-  }, [value, editing])
-
-  // When editing starts, move cursor to end of content
-  useEffect(() => {
-    if (editing && elRef.current) {
-      elRef.current.focus()
-      const range = document.createRange()
-      const sel   = window.getSelection()
-      range.selectNodeContents(elRef.current)
-      range.collapse(false)
-      sel.removeAllRanges()
-      sel.addRange(range)
-    }
-  }, [editing])
+  // When the parent resets (e.g. cancel), sync if not editing
+  const prevValue = useRef(value)
+  if (!editing && value !== prevValue.current) {
+    prevValue.current = value
+    // Only update local if value actually changed externally
+    if (local !== value) setLocal(value || '')
+  }
 
   const mergedStyle = { ...style, fontFamily: font }
 
+  // ── View mode ────────────────────────────────────────────────────────────
   if (!editMode) {
-    return <Tag style={mergedStyle}>{value || ''}</Tag>
+    return <span style={mergedStyle}>{value || ''}</span>
   }
 
-  return (
-    <span style={{ position: 'relative', display: 'inline-block' }}>
-      {editing && (
-        <span style={{
-          position: 'absolute', bottom: '100%', left: 0, zIndex: 9999,
-          display: 'inline-flex', gap: '4px', background: '#1e1e2e',
-          padding: '5px 8px', borderRadius: '8px', marginBottom: '4px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.5)', whiteSpace: 'nowrap',
-        }}>
-          <button onMouseDown={e => { e.preventDefault(); setShowFonts(f => !f) }}
-            style={mkBtn('dark')}>Aa &#9662;</button>
-          {showFonts && (
-            <span style={{
-              position: 'absolute', top: '100%', left: 0, background: '#2a2a3e',
-              borderRadius: '8px', padding: '6px', zIndex: 10000, minWidth: '180px',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.5)', marginTop: '4px',
-            }}>
-              {FONTS.map(f => (
-                <span key={f.value} onMouseDown={e => { e.preventDefault(); setFont(f.value); setShowFonts(false) }}
-                  style={{
-                    display: 'block', padding: '6px 10px', cursor: 'pointer',
-                    fontFamily: f.value, color: '#fff', borderRadius: '4px',
-                    background: font === f.value ? '#4f46e5' : 'transparent',
-                  }}>{f.label}</span>
-              ))}
-            </span>
-          )}
-          <button onMouseDown={e => { e.preventDefault(); onChange(local); setEditing(false) }}
-            style={mkBtn('indigo')}>&#10003; Save</button>
-          <button onMouseDown={e => { e.preventDefault(); setLocal(value || ''); setEditing(false) }}
-            style={mkBtn('dark')}>&#10005;</button>
-        </span>
-      )}
-      <Tag
-        ref={elRef}
-        contentEditable={editing}
-        suppressContentEditableWarning
+  // ── Edit mode: not yet clicked ────────────────────────────────────────────
+  if (!editing) {
+    return (
+      <span
+        onClick={() => { setLocal(value || ''); setEditing(true) }}
         style={{
           ...mergedStyle,
-          outline: editing ? '2px solid #4f46e5' : '1px dashed #c7d2fe',
-          borderRadius: '3px', padding: '1px 4px',
-          cursor: 'pointer', minWidth: '20px', display: 'inline-block',
+          outline: '1px dashed #c7d2fe',
+          borderRadius: '3px',
+          padding: '1px 4px',
+          cursor: 'pointer',
+          display: 'inline-block',
+          minWidth: '20px',
         }}
-        onClick={() => { if (!editing) setEditing(true) }}
-        onInput={e => setLocal(e.currentTarget.textContent)}
         title="Click to edit"
       >
-        {local || placeholder}
-      </Tag>
-      {!editing && (
+        {value || <span style={{ color: '#bbb', fontStyle: 'italic' }}>{placeholder}</span>}
         <span style={{ fontSize: '9px', color: '#818cf8', marginLeft: '4px',
           fontFamily: 'sans-serif', fontWeight: 700, verticalAlign: 'super' }}>edit</span>
+      </span>
+    )
+  }
+
+  // ── Edit mode: active input ────────────────────────────────────────────────
+  const inputStyle = {
+    fontFamily: font,
+    fontSize: 'inherit',
+    color: 'inherit',
+    background: 'rgba(255,255,255,0.07)',
+    border: '2px solid #4f46e5',
+    borderRadius: '3px',
+    padding: '2px 6px',
+    outline: 'none',
+    width: multiline ? '100%' : 'auto',
+    minWidth: '120px',
+    resize: multiline ? 'vertical' : 'none',
+    lineHeight: 'inherit',
+    display: multiline ? 'block' : 'inline',
+    boxSizing: 'border-box',
+  }
+
+  const handleSave  = () => { onChange(local); setEditing(false) }
+  const handleCancel = () => { setLocal(value || ''); setEditing(false) }
+
+  return (
+    <span style={{ position: 'relative', display: multiline ? 'block' : 'inline-block' }}>
+      {/* Toolbar */}
+      <span style={{
+        position: 'absolute', bottom: '100%', left: 0, zIndex: 9999,
+        display: 'inline-flex', gap: '4px', background: '#1e1e2e',
+        padding: '5px 8px', borderRadius: '8px', marginBottom: '4px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.5)', whiteSpace: 'nowrap',
+      }}>
+        <button onMouseDown={e => { e.preventDefault(); setShowFonts(f => !f) }}
+          style={mkBtn('dark')}>Aa &#9662;</button>
+        {showFonts && (
+          <span style={{
+            position: 'absolute', top: '100%', left: 0, background: '#2a2a3e',
+            borderRadius: '8px', padding: '6px', zIndex: 10000, minWidth: '180px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.5)', marginTop: '4px',
+          }}>
+            {FONTS.map(f => (
+              <span key={f.value}
+                onMouseDown={e => { e.preventDefault(); setFont(f.value); setShowFonts(false) }}
+                style={{
+                  display: 'block', padding: '6px 10px', cursor: 'pointer',
+                  fontFamily: f.value, color: '#fff', borderRadius: '4px',
+                  background: font === f.value ? '#4f46e5' : 'transparent',
+                }}>{f.label}</span>
+            ))}
+          </span>
+        )}
+        <button onMouseDown={e => { e.preventDefault(); handleSave() }}
+          style={mkBtn('indigo')}>&#10003; Save</button>
+        <button onMouseDown={e => { e.preventDefault(); handleCancel() }}
+          style={mkBtn('dark')}>&#10005;</button>
+      </span>
+
+      {/* Native input — zero cursor issues */}
+      {multiline ? (
+        <textarea
+          autoFocus
+          value={local}
+          onChange={e => setLocal(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Escape') handleCancel() }}
+          rows={3}
+          style={inputStyle}
+        />
+      ) : (
+        <input
+          autoFocus
+          type="text"
+          value={local}
+          onChange={e => setLocal(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); handleSave() }
+            if (e.key === 'Escape') handleCancel()
+          }}
+          style={inputStyle}
+        />
       )}
     </span>
   )
@@ -227,8 +264,6 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
     setSaved(false)
   }
 
-  // FIX: businessName falls back to tenant.name so the required field is always
-  //      present in the POST body, preventing the upsert from failing validation.
   async function handleSave() {
     setSaving(true)
     try {
@@ -246,7 +281,7 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
         setTimeout(() => setSaved(false), 3000)
       } else {
         const errData = await res.json().catch(() => ({}))
-        alert('Save failed: ' + (errData.error || res.statusText))
+        alert('Save failed: ' + (errData.error || res.status + ' ' + res.statusText))
       }
     } catch (err) {
       alert('Network error: ' + err.message)
@@ -298,7 +333,7 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
             {editMode && (
               <button onClick={handleSave} disabled={saving}
                 style={{ ...mkBtn(saving ? 'gray' : 'green'), fontWeight: 700, fontSize: '13px', padding: '7px 18px' }}>
-                {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
+                {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save Changes'}
               </button>
             )}
             <button onClick={() => setEditMode(e => !e)}
@@ -332,13 +367,13 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
           {/* ── HERO ── */}
           <section style={S.hero}>
             <h1 style={S.h1}>
-              <EditableText tag="span" value={c.heroHeadline} placeholder="Add a headline..."
-                onChange={v => set('heroHeadline', v)} editMode={editMode} style={{}} />
+              <EditableText value={c.heroHeadline} placeholder="Add a headline..."
+                onChange={v => set('heroHeadline', v)} editMode={editMode} />
             </h1>
             {(c.heroSubheadline || editMode) && (
               <p style={S.sub}>
-                <EditableText tag="span" value={c.heroSubheadline} placeholder="Add a subheadline..."
-                  onChange={v => set('heroSubheadline', v)} editMode={editMode} style={{}} />
+                <EditableText value={c.heroSubheadline} placeholder="Add a subheadline..."
+                  onChange={v => set('heroSubheadline', v)} editMode={editMode} />
               </p>
             )}
             {(c.heroImageUrl || editMode) && (
@@ -359,14 +394,15 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
                   {c.services.map((svc, i) => (
                     <div key={i} style={S.card}>
                       <p style={S.cardTitle}>
-                        <EditableText tag="span" value={svc.title} placeholder={'Service ' + (i + 1)}
+                        <EditableText value={svc.title} placeholder={'Service ' + (i + 1)}
                           onChange={v => { const u = [...c.services]; u[i] = { ...u[i], title: v }; set('services', u) }}
-                          editMode={editMode} style={{}} />
+                          editMode={editMode} />
                       </p>
                       <p style={S.cardDesc}>
-                        <EditableText tag="span" value={svc.description} placeholder="Description..."
+                        <EditableText value={svc.description} placeholder="Description..."
+                          multiline
                           onChange={v => { const u = [...c.services]; u[i] = { ...u[i], description: v }; set('services', u) }}
-                          editMode={editMode} style={{}} />
+                          editMode={editMode} />
                       </p>
                     </div>
                   ))}
@@ -380,8 +416,9 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
           <section id="about" style={S.section}>
             <h2 style={S.eyebrow}>About</h2>
             <p style={S.body}>
-              <EditableText tag="span" value={c.aboutText} placeholder="Tell visitors about your business..."
-                onChange={v => set('aboutText', v)} editMode={editMode} style={{}} />
+              <EditableText value={c.aboutText} placeholder="Tell visitors about your business..."
+                multiline
+                onChange={v => set('aboutText', v)} editMode={editMode} />
             </p>
           </section>
 
@@ -391,24 +428,18 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
           <section id="contact" style={S.section}>
             <h2 style={S.eyebrow}>Contact</h2>
             <div style={S.contactRow}>
-              <span>
-                {c.contactPhone || editMode
-                  ? <EditableText tag="span" value={c.contactPhone} placeholder="+1 (555) 000-0000"
-                      onChange={v => set('contactPhone', v)} editMode={editMode} style={{}} />
-                  : null}
-              </span>
-              <span>
-                {c.contactEmail || editMode
-                  ? <EditableText tag="span" value={c.contactEmail} placeholder="hello@yourbusiness.com"
-                      onChange={v => set('contactEmail', v)} editMode={editMode} style={{}} />
-                  : null}
-              </span>
-              <span>
-                {c.contactAddress || editMode
-                  ? <EditableText tag="span" value={c.contactAddress} placeholder="123 Main St, City, State"
-                      onChange={v => set('contactAddress', v)} editMode={editMode} style={{}} />
-                  : null}
-              </span>
+              {(c.contactPhone || editMode) && (
+                <EditableText value={c.contactPhone} placeholder="+1 (555) 000-0000"
+                  onChange={v => set('contactPhone', v)} editMode={editMode} />
+              )}
+              {(c.contactEmail || editMode) && (
+                <EditableText value={c.contactEmail} placeholder="hello@yourbusiness.com"
+                  onChange={v => set('contactEmail', v)} editMode={editMode} />
+              )}
+              {(c.contactAddress || editMode) && (
+                <EditableText value={c.contactAddress} placeholder="123 Main St, City, State"
+                  onChange={v => set('contactAddress', v)} editMode={editMode} />
+              )}
             </div>
           </section>
 
@@ -423,7 +454,7 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
   )
 }
 
-// ─── Server-side: fetch content + check session ───────────────────────────────
+// ─── Server-side ──────────────────────────────────────────────────────────────
 export async function getServerSideProps(context) {
   const { slug } = context.params
   const session  = await getSession(context)

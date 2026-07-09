@@ -7,12 +7,8 @@ import { authOptions } from '../auth/[...nextauth]'
 /**
  * /api/site-content/[slug]
  *
- * GET  — fetch all content + SEO slots for a site
- *        Public (used by the live /site/[slug] page)
- *
- * POST — save updated content + SEO slots
- *        Protected: client can only save their own site,
- *        admin can save any site
+ * GET  — fetch all content + SEO slots for a site (public)
+ * POST — save updated content (protected: admin or matching client)
  */
 export default async function handler(req, res) {
   const { slug } = req.query
@@ -20,31 +16,31 @@ export default async function handler(req, res) {
 
   await connectDB()
 
-  // ── GET ── public read, no auth required ────────────────────────────────
+  // ── GET ────────────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     const doc = await SiteContent.findOne({ siteSlug: slug }).lean()
     if (!doc) return res.status(404).json({ error: 'No content found for this slug' })
     return res.status(200).json(doc)
   }
 
-  // ── POST ── protected write ──────────────────────────────────────────────
+  // ── POST ───────────────────────────────────────────────────────────────────
   if (req.method === 'POST') {
     const session = await getServerSession(req, res, authOptions)
     if (!session) return res.status(401).json({ error: 'Unauthorized' })
 
-    // Resolve the tenant for this slug
+    const isAdmin  = session.user.role === 'admin'
+    // FIX: clients are identified by siteSlug on their session, not tenantId
+    const isOwner  = session.user.siteSlug === slug
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({
+        error: `Forbidden — session siteSlug "${session.user.siteSlug}" does not match "${slug}"`,
+      })
+    }
+
     const tenant = await Tenant.findOne({ slug }).lean()
     if (!tenant) return res.status(404).json({ error: 'Tenant not found for this slug' })
 
-    // Clients can only update their own site
-    if (
-      session.user.role !== 'admin' &&
-      String(session.user.tenantId) !== String(tenant._id)
-    ) {
-      return res.status(403).json({ error: 'Forbidden' })
-    }
-
-    // Whitelist only the fields defined in SiteContent
     const {
       businessName,
       heroHeadline,
@@ -65,10 +61,9 @@ export default async function handler(req, res) {
     } = req.body
 
     const update = {
-      // ← FIX: include required fields so upsert (first-save) succeeds
       siteSlug: slug,
       tenantId: tenant._id,
-      businessName,
+      businessName: businessName || tenant.name || '',
       heroHeadline,
       heroSubheadline,
       aboutText,
