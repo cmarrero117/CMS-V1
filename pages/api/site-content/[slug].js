@@ -4,33 +4,32 @@ import Tenant from '../../../lib/models/Tenant'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 
-/**
- * /api/site-content/[slug]
- *
- * GET  — fetch all content + SEO slots for a site (public)
- * POST — save updated content (protected: admin or matching client)
- */
 export default async function handler(req, res) {
   const { slug } = req.query
   if (!slug) return res.status(400).json({ error: 'Missing slug' })
 
   await connectDB()
 
-  // ── GET ────────────────────────────────────────────────────────────────────
+  // ── GET ───────────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     const doc = await SiteContent.findOne({ siteSlug: slug }).lean()
     if (!doc) return res.status(404).json({ error: 'No content found for this slug' })
     return res.status(200).json(doc)
   }
 
-  // ── POST ───────────────────────────────────────────────────────────────────
+  // ── POST ─────────────────────────────────────────────────────────────────
   if (req.method === 'POST') {
     const session = await getServerSession(req, res, authOptions)
+
+    // DEBUG — remove once save is confirmed working
+    console.log('[site-content POST] session.user =', JSON.stringify(session?.user))
+
     if (!session) return res.status(401).json({ error: 'Unauthorized' })
 
-    const isAdmin  = session.user.role === 'admin'
-    // FIX: clients are identified by siteSlug on their session, not tenantId
-    const isOwner  = session.user.siteSlug === slug
+    const isAdmin = session.user.role === 'admin'
+    const isOwner = session.user.siteSlug === slug
+
+    console.log('[site-content POST] isAdmin:', isAdmin, '| isOwner:', isOwner, '| slug:', slug)
 
     if (!isAdmin && !isOwner) {
       return res.status(403).json({
@@ -42,32 +41,19 @@ export default async function handler(req, res) {
     if (!tenant) return res.status(404).json({ error: 'Tenant not found for this slug' })
 
     const {
-      businessName,
-      heroHeadline,
-      heroSubheadline,
-      aboutText,
-      services,
-      contactPhone,
-      contactEmail,
-      contactAddress,
-      logoUrl,
-      heroImageUrl,
-      seoTitle,
-      seoDescription,
-      seoKeywords,
-      ogTitle,
-      ogDescription,
-      ogImageUrl,
+      businessName, heroHeadline, heroSubheadline, aboutText, services,
+      contactPhone, contactEmail, contactAddress, logoUrl, heroImageUrl,
+      seoTitle, seoDescription, seoKeywords, ogTitle, ogDescription, ogImageUrl,
     } = req.body
 
     const update = {
-      siteSlug: slug,
-      tenantId: tenant._id,
-      businessName: businessName || tenant.name || '',
+      siteSlug:        slug,
+      tenantId:        tenant._id,
+      businessName:    businessName || tenant.name || '',
       heroHeadline,
       heroSubheadline,
       aboutText,
-      services: Array.isArray(services) ? services.slice(0, 6) : [],
+      services:        Array.isArray(services) ? services.slice(0, 6) : [],
       contactPhone,
       contactEmail,
       contactAddress,
@@ -79,7 +65,7 @@ export default async function handler(req, res) {
       ogTitle,
       ogDescription,
       ogImageUrl,
-      updatedAt: new Date(),
+      updatedAt:       new Date(),
     }
 
     const doc = await SiteContent.findOneAndUpdate(
