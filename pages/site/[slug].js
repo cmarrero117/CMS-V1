@@ -32,13 +32,33 @@ const btn = {
 const mkBtn = (...variants) => Object.assign({}, btn.base, ...variants.map(v => btn[v]))
 
 // ─── EditableText ─────────────────────────────────────────────────────────────
+// FIX: useEffect is guarded by !editing — it will never reset `local` (and
+//      therefore never move the cursor) while the user is actively typing.
 function EditableText({ value, onChange, tag: Tag = 'span', style, editMode, placeholder }) {
   const [editing, setEditing]     = useState(false)
   const [local, setLocal]         = useState(value || '')
   const [showFonts, setShowFonts] = useState(false)
   const [font, setFont]           = useState(FONTS[0].value)
+  const elRef                     = useRef(null)
 
-  useEffect(() => { setLocal(value || '') }, [value])
+  // Only sync from prop when we are NOT in edit mode — this prevents React
+  // from overwriting the DOM text (and resetting cursor position) mid-keystroke.
+  useEffect(() => {
+    if (!editing) setLocal(value || '')
+  }, [value, editing])
+
+  // When editing starts, move cursor to end of content
+  useEffect(() => {
+    if (editing && elRef.current) {
+      elRef.current.focus()
+      const range = document.createRange()
+      const sel   = window.getSelection()
+      range.selectNodeContents(elRef.current)
+      range.collapse(false)
+      sel.removeAllRanges()
+      sel.addRange(range)
+    }
+  }, [editing])
 
   const mergedStyle = { ...style, fontFamily: font }
 
@@ -80,18 +100,21 @@ function EditableText({ value, onChange, tag: Tag = 'span', style, editMode, pla
         </span>
       )}
       <Tag
+        ref={elRef}
         contentEditable={editing}
         suppressContentEditableWarning
         style={{
           ...mergedStyle,
           outline: editing ? '2px solid #4f46e5' : '1px dashed #c7d2fe',
-          borderRadius: '3px', padding: editing ? '1px 4px' : '1px 4px',
+          borderRadius: '3px', padding: '1px 4px',
           cursor: 'pointer', minWidth: '20px', display: 'inline-block',
         }}
-        onClick={() => setEditing(true)}
+        onClick={() => { if (!editing) setEditing(true) }}
         onInput={e => setLocal(e.currentTarget.textContent)}
         title="Click to edit"
-      >{local || <span style={{ color: '#bbb', fontStyle: 'italic' }}>{placeholder}</span>}</Tag>
+      >
+        {local || placeholder}
+      </Tag>
       {!editing && (
         <span style={{ fontSize: '9px', color: '#818cf8', marginLeft: '4px',
           fontFamily: 'sans-serif', fontWeight: 700, verticalAlign: 'super' }}>edit</span>
@@ -142,7 +165,7 @@ function EditableImage({ src, alt, onChange, editMode, imgStyle }) {
               style={{ width: '100%', padding: '10px 12px', borderRadius: '8px',
                 border: '1px solid #3f3f5a', background: '#2a2a3e', color: '#fff',
                 fontSize: '14px', marginBottom: '10px', boxSizing: 'border-box' }} />
-            <p style={{ color: '#a1a1b5', fontSize: '12px', textAlign: 'center' }}>— or —</p>
+            <p style={{ color: '#a1a1b5', fontSize: '12px', textAlign: 'center' }}>&mdash; or &mdash;</p>
             <input type="file" accept="image/*" ref={fileRef} style={{ display: 'none' }}
               onChange={e => {
                 const file = e.target.files[0]
@@ -204,17 +227,30 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
     setSaved(false)
   }
 
+  // FIX: businessName falls back to tenant.name so the required field is always
+  //      present in the POST body, preventing the upsert from failing validation.
   async function handleSave() {
     setSaving(true)
     try {
+      const payload = {
+        ...c,
+        businessName: c.businessName || (tenant && tenant.name) || '',
+      }
       const res = await fetch(`/api/site-content/${slug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(c),
+        body: JSON.stringify(payload),
       })
-      if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 3000) }
-      else alert('Save failed — please try again.')
-    } catch { alert('Network error — please try again.') }
+      if (res.ok) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        alert('Save failed: ' + (errData.error || res.statusText))
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message)
+    }
     setSaving(false)
   }
 
@@ -245,7 +281,7 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
         )}
       </Head>
 
-      {/* ── Edit bar (only for authorised users) ── */}
+      {/* ── Edit bar ── */}
       {canEdit && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99998,
