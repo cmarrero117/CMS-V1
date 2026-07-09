@@ -2,7 +2,7 @@ import connectDB from '../../../lib/db'
 import SiteContent from '../../../lib/models/SiteContent'
 import Tenant from '../../../lib/models/Tenant'
 import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../auth/[...nextauth]'
+import { authOptions } from '../../../lib/authOptions'
 
 export default async function handler(req, res) {
   const { slug } = req.query
@@ -10,26 +10,21 @@ export default async function handler(req, res) {
 
   await connectDB()
 
-  // ── GET ───────────────────────────────────────────────────────────────────
+  // ── GET ─────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     const doc = await SiteContent.findOne({ siteSlug: slug }).lean()
     if (!doc) return res.status(404).json({ error: 'No content found for this slug' })
     return res.status(200).json(doc)
   }
 
-  // ── POST ─────────────────────────────────────────────────────────────────
+  // ── POST ───────────────────────────────────────────────────────
   if (req.method === 'POST') {
     const session = await getServerSession(req, res, authOptions)
-
-    // DEBUG — remove once save is confirmed working
-    console.log('[site-content POST] session.user =', JSON.stringify(session?.user))
 
     if (!session) return res.status(401).json({ error: 'Unauthorized' })
 
     const isAdmin = session.user.role === 'admin'
     const isOwner = session.user.siteSlug === slug
-
-    console.log('[site-content POST] isAdmin:', isAdmin, '| isOwner:', isOwner, '| slug:', slug)
 
     if (!isAdmin && !isOwner) {
       return res.status(403).json({
