@@ -26,9 +26,11 @@ const s = {
   fieldLabel: { fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: '0.25rem' },
   value:      { padding: '0.6rem 0.85rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '0.9rem', color: '#111', whiteSpace: 'pre-wrap', lineHeight: 1.55 },
   empty:      { padding: '0.6rem 0.85rem', background: '#fafafa', border: '1px dashed #d1d5db', borderRadius: '6px', fontSize: '0.875rem', color: '#9ca3af', fontStyle: 'italic' },
-  svcBox:     { padding: '0.6rem 0.85rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px', marginBottom: '0.5rem' },
-  svcTitle:   { fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.2rem' },
-  svcDesc:    { fontSize: '0.875rem', color: '#555' },
+  itemBox:    { padding: '0.75rem 0.85rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px', marginBottom: '0.5rem' },
+  itemTitle:  { fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.15rem' },
+  itemSub:    { fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' },
+  itemBody:   { fontSize: '0.875rem', color: '#555' },
+  twoCol:     { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' },
   noContent:  { padding: '3rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.95rem' },
   ts:         { marginTop: '0.5rem', fontSize: '0.78rem', color: '#9ca3af' },
   errMsg:     { marginTop: '0.4rem', fontSize: '0.78rem', color: '#dc2626', textAlign: 'right' },
@@ -97,18 +99,13 @@ export default function ClientContentPage({ client, content, siteSlug, updatedAt
           {siteSlug && <p style={s.slugBadge}>/site/{siteSlug}</p>}
           {updatedAt && <p style={s.ts}>Last saved: {new Date(updatedAt).toLocaleString()}</p>}
         </div>
-
         <div style={s.btnGroup}>
           {siteSlug && (
             <Link href={`/site/${siteSlug}`} target="_blank" rel="noopener noreferrer" style={s.liveBtn}>
               View Live Site ↗
             </Link>
           )}
-          <button
-            style={busy ? s.viewBtnBusy : s.viewBtn}
-            onClick={handleViewAsClient}
-            disabled={busy}
-          >
+          <button style={busy ? s.viewBtnBusy : s.viewBtn} onClick={handleViewAsClient} disabled={busy}>
             {busy ? 'Loading…' : '👁 View as Client →'}
           </button>
           {err && <div style={s.errMsg}>{err}</div>}
@@ -127,7 +124,13 @@ export default function ClientContentPage({ client, content, siteSlug, updatedAt
             <Field label="Business Name"    value={content.businessName} />
             <Field label="Hero Headline"    value={content.heroHeadline} />
             <Field label="Hero Subheadline" value={content.heroSubheadline} />
-            <Field label="About Text"       value={content.aboutText} />
+
+            <div style={s.twoCol}>
+              <Field label="Hero Button Text" value={content.heroCtaText} />
+              <Field label="Hero Button Link" value={content.heroCtaUrl} />
+            </div>
+
+            <Field label="About Text" value={content.aboutText} />
 
             {/* Services */}
             <div style={s.row}>
@@ -135,13 +138,44 @@ export default function ClientContentPage({ client, content, siteSlug, updatedAt
               {(content.services || []).length === 0
                 ? <div style={s.empty}>No services added yet.</div>
                 : (content.services || []).map((svc, i) => (
-                    <div key={i} style={s.svcBox}>
-                      <div style={s.svcTitle}>{svc.title || '(untitled)'}</div>
-                      {svc.description && <div style={s.svcDesc}>{svc.description}</div>}
+                    <div key={i} style={s.itemBox}>
+                      <div style={s.itemTitle}>{svc.title || '(untitled)'}</div>
+                      {svc.description && <div style={s.itemBody}>{svc.description}</div>}
                     </div>
                   ))
               }
             </div>
+          </div>
+
+          {/* ── TEAM MEMBERS ── */}
+          <div style={s.section}>
+            <div style={s.sectionH}>Team Members ({(content.teamMembers || []).length})</div>
+            {(content.teamMembers || []).length === 0
+              ? <div style={s.empty}>No team members added yet.</div>
+              : (content.teamMembers || []).map((m, i) => (
+                  <div key={i} style={s.itemBox}>
+                    <div style={s.itemTitle}>{m.name || '(no name)'}</div>
+                    {m.title    && <div style={s.itemSub}>{m.title}</div>}
+                    {m.bio      && <div style={s.itemBody}>{m.bio}</div>}
+                    {m.imageUrl && <div style={{ ...s.itemBody, marginTop: '0.3rem', fontFamily: 'monospace', fontSize: '0.78rem', color: '#9ca3af' }}>{m.imageUrl}</div>}
+                  </div>
+                ))
+            }
+          </div>
+
+          {/* ── TESTIMONIALS ── */}
+          <div style={s.section}>
+            <div style={s.sectionH}>Testimonials ({(content.testimonials || []).length})</div>
+            {(content.testimonials || []).length === 0
+              ? <div style={s.empty}>No testimonials added yet.</div>
+              : (content.testimonials || []).map((t, i) => (
+                  <div key={i} style={s.itemBox}>
+                    {t.quote  && <div style={{ ...s.itemBody, fontStyle: 'italic', marginBottom: '0.35rem' }}>&ldquo;{t.quote}&rdquo;</div>}
+                    <div style={s.itemTitle}>{t.author || '(no author)'}</div>
+                    {t.role   && <div style={s.itemSub}>{t.role}</div>}
+                  </div>
+                ))
+            }
           </div>
 
           {/* ── CONTACT ── */}
@@ -182,14 +216,13 @@ export async function getServerSideProps(context) {
   }
 
   const { id } = context.params
-
   await dbConnect()
 
   const user = await User.findById(id).select('-password').lean()
   if (!user || user.role !== 'client') return { notFound: true }
 
   let siteSlug = null
-  let content = {}
+  let content  = {}
   let updatedAt = null
 
   if (user.tenantId) {
@@ -202,8 +235,12 @@ export async function getServerSideProps(context) {
           businessName:    sc.businessName    || '',
           heroHeadline:    sc.heroHeadline    || '',
           heroSubheadline: sc.heroSubheadline || '',
+          heroCtaText:     sc.heroCtaText     || '',
+          heroCtaUrl:      sc.heroCtaUrl      || '',
           aboutText:       sc.aboutText       || '',
-          services:        (sc.services || []).map(s => ({ title: s.title || '', description: s.description || '' })),
+          services:        (sc.services     || []).map(s => ({ title: s.title || '', description: s.description || '' })),
+          teamMembers:     (sc.teamMembers  || []).map(m => ({ name: m.name || '', title: m.title || '', bio: m.bio || '', imageUrl: m.imageUrl || '' })),
+          testimonials:    (sc.testimonials || []).map(t => ({ quote: t.quote || '', author: t.author || '', role: t.role || '' })),
           contactPhone:    sc.contactPhone    || '',
           contactEmail:    sc.contactEmail    || '',
           contactAddress:  sc.contactAddress  || '',
