@@ -10,14 +10,14 @@ export default async function handler(req, res) {
 
   await connectDB()
 
-  // ── GET ─────────────────────────────────────────────────────────
+  // ── GET ─────────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     const doc = await SiteContent.findOne({ siteSlug: slug }).lean()
     if (!doc) return res.status(404).json({ error: 'No content found for this slug' })
     return res.status(200).json(doc)
   }
 
-  // ── POST ───────────────────────────────────────────────────────
+  // ── POST ─────────────────────────────────────────────────────────────
   if (req.method === 'POST') {
     const session = await getServerSession(req, res, authOptions)
 
@@ -36,9 +36,12 @@ export default async function handler(req, res) {
     if (!tenant) return res.status(404).json({ error: 'Tenant not found for this slug' })
 
     const {
-      businessName, heroHeadline, heroSubheadline, aboutText, services,
-      contactPhone, contactEmail, contactAddress, logoUrl, heroImageUrl,
-      seoTitle, seoDescription, seoKeywords, ogTitle, ogDescription, ogImageUrl,
+      businessName, heroHeadline, heroSubheadline, heroCtaText, heroCtaUrl,
+      aboutText, services, teamMembers, testimonials,
+      contactPhone, contactEmail, contactAddress,
+      logoUrl, heroImageUrl,
+      seoTitle, seoDescription, seoKeywords,
+      ogTitle, ogDescription, ogImageUrl,
     } = req.body
 
     const update = {
@@ -47,8 +50,12 @@ export default async function handler(req, res) {
       businessName:    businessName || tenant.name || '',
       heroHeadline,
       heroSubheadline,
+      heroCtaText,
+      heroCtaUrl,
       aboutText,
-      services:        Array.isArray(services) ? services.slice(0, 6) : [],
+      services:        Array.isArray(services)     ? services.slice(0, 6)     : [],
+      teamMembers:     Array.isArray(teamMembers)  ? teamMembers.slice(0, 6)  : [],
+      testimonials:    Array.isArray(testimonials) ? testimonials.slice(0, 4) : [],
       contactPhone,
       contactEmail,
       contactAddress,
