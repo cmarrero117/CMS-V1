@@ -4,12 +4,11 @@ import { useRouter } from 'next/router'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../lib/authOptions'
 import { parse as parseCookies } from 'cookie'
-import { serialize } from 'cookie'
 import dbConnect from '../../lib/db'
 import SiteContent from '../../lib/models/SiteContent'
 import Tenant from '../../lib/models/Tenant'
 
-// ─── Styles ─────────────────────────────────────────────────────────────────────
+// ─── Styles ──────────────────────────────────────────────────────────────────────────────────
 const s = {
   page:        { fontFamily: 'system-ui, sans-serif', padding: '2rem', maxWidth: '780px', margin: '0 auto', color: '#1a1a1a' },
   header:      { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' },
@@ -30,35 +29,66 @@ const s = {
   saveBtn:     { padding: '0.55rem 1.5rem', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem' },
   savedMsg:    { fontSize: '0.88rem', color: '#16a34a', fontWeight: 500 },
   errorMsg:    { fontSize: '0.88rem', color: '#dc2626', fontWeight: 500 },
-  serviceBox:  { background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem', marginBottom: '0.75rem' },
-  serviceRow:  { display: 'flex', gap: '0.75rem', marginBottom: '0.5rem' },
+  itemBox:     { background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem', marginBottom: '0.75rem' },
+  itemRow:     { display: 'flex', gap: '0.75rem', marginBottom: '0.5rem' },
   addBtn:      { padding: '0.4rem 1rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 },
   removeBtn:   { padding: '0.3rem 0.6rem', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '5px', cursor: 'pointer', fontSize: '0.8rem', color: '#b91c1c', fontWeight: 600 },
+  twoCol:      { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' },
 }
 
 export default function ClientDashboard({ clientEmail, clientName, siteSlug, initialContent, viewerRole }) {
   const router = useRouter()
-
   const [form, setForm] = useState(initialContent)
-  const [saveState, setSaveState] = useState('idle') // idle | saving | saved | error
+  const [saveState, setSaveState] = useState('idle')
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
+  // ── Services helpers
   const setService = (i, key, val) => {
     const updated = [...(form.services || [])]
     updated[i] = { ...updated[i], [key]: val }
     setForm(f => ({ ...f, services: updated }))
   }
-
   const addService = () => {
     if ((form.services || []).length >= 6) return
     setForm(f => ({ ...f, services: [...(f.services || []), { title: '', description: '' }] }))
   }
-
-  const removeService = (i) => {
+  const removeService = i => {
     const updated = [...(form.services || [])]
     updated.splice(i, 1)
     setForm(f => ({ ...f, services: updated }))
+  }
+
+  // ── Team Members helpers
+  const setTeamMember = (i, key, val) => {
+    const updated = [...(form.teamMembers || [])]
+    updated[i] = { ...updated[i], [key]: val }
+    setForm(f => ({ ...f, teamMembers: updated }))
+  }
+  const addTeamMember = () => {
+    if ((form.teamMembers || []).length >= 6) return
+    setForm(f => ({ ...f, teamMembers: [...(f.teamMembers || []), { name: '', title: '', bio: '', imageUrl: '' }] }))
+  }
+  const removeTeamMember = i => {
+    const updated = [...(form.teamMembers || [])]
+    updated.splice(i, 1)
+    setForm(f => ({ ...f, teamMembers: updated }))
+  }
+
+  // ── Testimonials helpers
+  const setTestimonial = (i, key, val) => {
+    const updated = [...(form.testimonials || [])]
+    updated[i] = { ...updated[i], [key]: val }
+    setForm(f => ({ ...f, testimonials: updated }))
+  }
+  const addTestimonial = () => {
+    if ((form.testimonials || []).length >= 4) return
+    setForm(f => ({ ...f, testimonials: [...(f.testimonials || []), { quote: '', author: '', role: '' }] }))
+  }
+  const removeTestimonial = i => {
+    const updated = [...(form.testimonials || [])]
+    updated.splice(i, 1)
+    setForm(f => ({ ...f, testimonials: updated }))
   }
 
   const handleSaveAll = async () => {
@@ -91,15 +121,13 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
   return (
     <div style={s.page}>
 
-      {/* Admin impersonation banner */}
       {viewerRole === 'admin' && (
         <div style={s.adminBanner}>
-          <span style={s.adminText}>👁 Viewing as admin — changes here <em>are</em> saved to this client’s account.</span>
+          <span style={s.adminText}>👁 Viewing as admin — changes here <em>are</em> saved to this client&apos;s account.</span>
           <button style={s.backBtn} onClick={handleExitImpersonation}>← Back to Admin</button>
         </div>
       )}
 
-      {/* Header */}
       <div style={s.header}>
         <div>
           <h1 style={s.name}>Welcome, {clientName || clientEmail}</h1>
@@ -110,7 +138,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
         )}
       </div>
 
-      {/* ── CONTENT SECTION ──────────────────────────────────────────────────── */}
+      {/* ─────────────────── CONTENT ──────────────────── */}
       <div style={s.section}>
         <h2 style={s.sectionHead}>Content</h2>
 
@@ -126,6 +154,15 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           <input style={s.input} value={form.heroSubheadline || ''} onChange={e => set('heroSubheadline', e.target.value)} placeholder="e.g. Serving Puerto Rico since 2010" />
         </Field>
 
+        <div style={s.twoCol}>
+          <Field label="Hero Button Text" hint="Text on the call-to-action button.">
+            <input style={s.input} value={form.heroCtaText || ''} onChange={e => set('heroCtaText', e.target.value)} placeholder="e.g. Book an Appointment" />
+          </Field>
+          <Field label="Hero Button Link" hint="URL the button points to.">
+            <input style={s.input} value={form.heroCtaUrl || ''} onChange={e => set('heroCtaUrl', e.target.value)} placeholder="e.g. /contact or https://..." />
+          </Field>
+        </div>
+
         <Field label="About Text" hint="A short paragraph describing your practice, business, or background.">
           <textarea style={s.textarea} rows={4} value={form.aboutText || ''} onChange={e => set('aboutText', e.target.value)} placeholder="e.g. We are a team of specialists dedicated to..." />
         </Field>
@@ -135,87 +172,128 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           <label style={s.label}>Services <span style={{ fontWeight: 400, color: '#9ca3af' }}>(up to 6)</span></label>
           <span style={s.hint}>List the main services you offer. Each one gets a title and a short description.</span>
           {(form.services || []).map((svc, i) => (
-            <div key={i} style={s.serviceBox}>
-              <div style={s.serviceRow}>
-                <input
-                  style={{ ...s.input, flex: 1 }}
-                  value={svc.title || ''}
-                  onChange={e => setService(i, 'title', e.target.value)}
-                  placeholder={`Service ${i + 1} title — e.g. Physical Therapy`}
-                />
+            <div key={i} style={s.itemBox}>
+              <div style={s.itemRow}>
+                <input style={{ ...s.input, flex: 1 }} value={svc.title || ''} onChange={e => setService(i, 'title', e.target.value)} placeholder={`Service ${i + 1} title`} />
                 <button style={s.removeBtn} onClick={() => removeService(i)}>✕ Remove</button>
               </div>
-              <textarea
-                style={{ ...s.textarea, marginTop: 0 }}
-                rows={2}
-                value={svc.description || ''}
-                onChange={e => setService(i, 'description', e.target.value)}
-                placeholder="Short description of this service..."
-              />
+              <textarea style={{ ...s.textarea, marginTop: 0 }} rows={2} value={svc.description || ''} onChange={e => setService(i, 'description', e.target.value)} placeholder="Short description of this service..." />
             </div>
           ))}
           {(form.services || []).length < 6 && (
             <button style={s.addBtn} onClick={addService}>+ Add Service</button>
           )}
         </div>
+      </div>
 
-        <Field label="Contact Phone" hint="">
+      {/* ─────────────────── TEAM ────────────────────── */}
+      <div style={s.section}>
+        <h2 style={s.sectionHead}>Team Members <span style={{ fontSize: '0.8rem', fontWeight: 400, textTransform: 'none', color: '#9ca3af' }}>(up to 6)</span></h2>
+        {(form.teamMembers || []).map((member, i) => (
+          <div key={i} style={s.itemBox}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <strong style={{ fontSize: '0.85rem', color: '#374151' }}>Member {i + 1}</strong>
+              <button style={s.removeBtn} onClick={() => removeTeamMember(i)}>✕ Remove</button>
+            </div>
+            <div style={s.twoCol}>
+              <Field label="Name" hint="">
+                <input style={s.input} value={member.name || ''} onChange={e => setTeamMember(i, 'name', e.target.value)} placeholder="e.g. Dr. Maria Torres" />
+              </Field>
+              <Field label="Title / Role" hint="">
+                <input style={s.input} value={member.title || ''} onChange={e => setTeamMember(i, 'title', e.target.value)} placeholder="e.g. Pain Medicine Specialist" />
+              </Field>
+            </div>
+            <Field label="Bio" hint="A short paragraph about this person.">
+              <textarea style={s.textarea} rows={3} value={member.bio || ''} onChange={e => setTeamMember(i, 'bio', e.target.value)} placeholder="Brief background, credentials, and specialty..." />
+            </Field>
+            <Field label="Photo URL" hint="Direct link to their profile photo.">
+              <input style={s.input} value={member.imageUrl || ''} onChange={e => setTeamMember(i, 'imageUrl', e.target.value)} placeholder="https://..." />
+            </Field>
+          </div>
+        ))}
+        {(form.teamMembers || []).length < 6 && (
+          <button style={s.addBtn} onClick={addTeamMember}>+ Add Team Member</button>
+        )}
+      </div>
+
+      {/* ─────────────────── TESTIMONIALS ─────────────── */}
+      <div style={s.section}>
+        <h2 style={s.sectionHead}>Testimonials <span style={{ fontSize: '0.8rem', fontWeight: 400, textTransform: 'none', color: '#9ca3af' }}>(up to 4)</span></h2>
+        {(form.testimonials || []).map((t, i) => (
+          <div key={i} style={s.itemBox}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <strong style={{ fontSize: '0.85rem', color: '#374151' }}>Testimonial {i + 1}</strong>
+              <button style={s.removeBtn} onClick={() => removeTestimonial(i)}>✕ Remove</button>
+            </div>
+            <Field label="Quote" hint="What the patient or client said.">
+              <textarea style={s.textarea} rows={3} value={t.quote || ''} onChange={e => setTestimonial(i, 'quote', e.target.value)} placeholder="e.g. The team at Apex changed my life. I can finally move without pain." />
+            </Field>
+            <div style={s.twoCol}>
+              <Field label="Author" hint="">
+                <input style={s.input} value={t.author || ''} onChange={e => setTestimonial(i, 'author', e.target.value)} placeholder="e.g. Carlos Rivera" />
+              </Field>
+              <Field label="Role / Context" hint="">
+                <input style={s.input} value={t.role || ''} onChange={e => setTestimonial(i, 'role', e.target.value)} placeholder="e.g. Patient since 2021" />
+              </Field>
+            </div>
+          </div>
+        ))}
+        {(form.testimonials || []).length < 4 && (
+          <button style={s.addBtn} onClick={addTestimonial}>+ Add Testimonial</button>
+        )}
+      </div>
+
+      {/* ─────────────────── CONTACT ─────────────────── */}
+      <div style={s.section}>
+        <h2 style={s.sectionHead}>Contact</h2>
+        <Field label="Phone" hint="">
           <input style={s.input} value={form.contactPhone || ''} onChange={e => set('contactPhone', e.target.value)} placeholder="e.g. (787) 555-0100" />
         </Field>
-
-        <Field label="Contact Email" hint="">
+        <Field label="Email" hint="">
           <input style={s.input} value={form.contactEmail || ''} onChange={e => set('contactEmail', e.target.value)} placeholder="e.g. hello@apexpain.com" />
         </Field>
-
-        <Field label="Contact Address" hint="">
+        <Field label="Address" hint="">
           <input style={s.input} value={form.contactAddress || ''} onChange={e => set('contactAddress', e.target.value)} placeholder="e.g. 123 Main St, San Juan, PR 00901" />
         </Field>
+      </div>
 
+      {/* ─────────────────── MEDIA ──────────────────── */}
+      <div style={s.section}>
+        <h2 style={s.sectionHead}>Media</h2>
         <Field label="Logo URL" hint="Paste the URL of your logo image. Leave blank to use the default.">
           <input style={s.input} value={form.logoUrl || ''} onChange={e => set('logoUrl', e.target.value)} placeholder="https://..." />
         </Field>
-
         <Field label="Hero Image URL" hint="Background or banner photo for the hero section. Leave blank to use the default.">
           <input style={s.input} value={form.heroImageUrl || ''} onChange={e => set('heroImageUrl', e.target.value)} placeholder="https://..." />
         </Field>
       </div>
 
-      {/* ── SEO SECTION ───────────────────────────────────────────────────── */}
+      {/* ─────────────────── SEO ───────────────────── */}
       <div style={s.section}>
         <h2 style={s.sectionHead}>SEO &amp; Social</h2>
-
-        <Field label="Page Title" hint="Shows in the browser tab and Google search results. Ideal length: 50–60 characters.">
+        <Field label="Page Title" hint="Shows in the browser tab and Google search results. Ideal: 50–60 characters.">
           <input style={s.input} value={form.seoTitle || ''} onChange={e => set('seoTitle', e.target.value)} placeholder="e.g. Apex Pain Clinic — Pain Management in Puerto Rico" />
         </Field>
-
-        <Field label="Meta Description" hint="The snippet shown under your link in Google. Ideal length: 150–160 characters.">
-          <textarea style={s.textarea} rows={3} value={form.seoDescription || ''} onChange={e => set('seoDescription', e.target.value)} placeholder="e.g. Apex Pain Clinic offers expert, compassionate pain management care in Puerto Rico. Call us today." />
+        <Field label="Meta Description" hint="Shown under your link in Google. Ideal: 150–160 characters.">
+          <textarea style={s.textarea} rows={3} value={form.seoDescription || ''} onChange={e => set('seoDescription', e.target.value)} placeholder="e.g. Apex Pain Clinic offers expert, compassionate pain management care in Puerto Rico." />
         </Field>
-
-        <Field label="Keywords" hint="Comma-separated words related to your business. Helps with search visibility.">
-          <input style={s.input} value={form.seoKeywords || ''} onChange={e => set('seoKeywords', e.target.value)} placeholder="e.g. pain clinic, Puerto Rico, pain management, sports injury" />
+        <Field label="Keywords" hint="Comma-separated words related to your business.">
+          <input style={s.input} value={form.seoKeywords || ''} onChange={e => set('seoKeywords', e.target.value)} placeholder="e.g. pain clinic, Puerto Rico, pain management" />
         </Field>
-
-        <Field label="Social Share Title" hint="Title shown when someone shares your site on Facebook, WhatsApp, etc. Defaults to Page Title if left blank.">
+        <Field label="Social Share Title" hint="Shown when your site is shared on Facebook, WhatsApp, etc.">
           <input style={s.input} value={form.ogTitle || ''} onChange={e => set('ogTitle', e.target.value)} placeholder="e.g. Apex Pain Clinic" />
         </Field>
-
-        <Field label="Social Share Description" hint="Description shown in social share previews. Defaults to Meta Description if left blank.">
+        <Field label="Social Share Description" hint="Description in social share previews.">
           <textarea style={s.textarea} rows={2} value={form.ogDescription || ''} onChange={e => set('ogDescription', e.target.value)} placeholder="e.g. Expert pain management care in Puerto Rico." />
         </Field>
-
-        <Field label="Social Share Image URL" hint="Image shown when your site is shared on social media. Recommended size: 1200 × 630px.">
+        <Field label="Social Share Image URL" hint="Recommended size: 1200 × 630px.">
           <input style={s.input} value={form.ogImageUrl || ''} onChange={e => set('ogImageUrl', e.target.value)} placeholder="https://..." />
         </Field>
       </div>
 
-      {/* ── SAVE ALL ───────────────────────────────────────────────────────── */}
+      {/* ─────────────────── SAVE ───────────────────── */}
       <div style={s.saveBar}>
-        <button
-          style={{ ...s.saveBtn, opacity: saveState === 'saving' ? 0.7 : 1 }}
-          onClick={handleSaveAll}
-          disabled={saveState === 'saving'}
-        >
+        <button style={{ ...s.saveBtn, opacity: saveState === 'saving' ? 0.7 : 1 }} onClick={handleSaveAll} disabled={saveState === 'saving'}>
           {saveState === 'saving' ? 'Saving…' : 'Save All Changes'}
         </button>
         {saveState === 'saved' && <span style={s.savedMsg}>✓ All changes saved</span>}
@@ -226,7 +304,6 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
   )
 }
 
-// ─── Helper component ─────────────────────────────────────────────────────────────────
 function Field({ label, hint, children }) {
   return (
     <div style={{ marginBottom: '1.25rem' }}>
@@ -237,7 +314,6 @@ function Field({ label, hint, children }) {
   )
 }
 
-// ─── Server-side data fetch ─────────────────────────────────────────────────────────────
 export async function getServerSideProps(context) {
   const session = await getServerSession(context.req, context.res, authOptions)
 
@@ -249,13 +325,11 @@ export async function getServerSideProps(context) {
 
   let tenantId = session.user.tenantId
 
-  // Admin impersonation: check for the cookie set by /api/admin/impersonate
   if (session.user.role === 'admin') {
     const cookies = parseCookies(context.req.headers.cookie || '')
     if (cookies.adminViewingTenantId) {
       tenantId = cookies.adminViewingTenantId
     } else {
-      // Admin with no impersonation cookie — redirect back to admin panel
       return { redirect: { destination: '/admin', permanent: false } }
     }
   }
@@ -265,15 +339,18 @@ export async function getServerSideProps(context) {
     return { redirect: { destination: session.user.role === 'admin' ? '/admin' : '/login', permanent: false } }
   }
 
-  // Fetch existing saved content for this tenant
   const existing = await SiteContent.findOne({ tenantId: tenant._id }).lean()
 
   const initialContent = {
     businessName:    existing?.businessName    || '',
     heroHeadline:    existing?.heroHeadline    || '',
     heroSubheadline: existing?.heroSubheadline || '',
+    heroCtaText:     existing?.heroCtaText     || '',
+    heroCtaUrl:      existing?.heroCtaUrl      || '',
     aboutText:       existing?.aboutText       || '',
     services:        existing?.services        || [],
+    teamMembers:     existing?.teamMembers     || [],
+    testimonials:    existing?.testimonials    || [],
     contactPhone:    existing?.contactPhone    || '',
     contactEmail:    existing?.contactEmail    || '',
     contactAddress:  existing?.contactAddress  || '',
@@ -287,7 +364,6 @@ export async function getServerSideProps(context) {
     ogImageUrl:      existing?.ogImageUrl      || '',
   }
 
-  // Resolve client name/email from the tenant for admin view
   let clientEmail = session.user.email
   let clientName  = session.user.name || null
 
