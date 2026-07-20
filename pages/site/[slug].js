@@ -99,10 +99,8 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
 
   if (!editMode) return <>{children}</>
 
-  // ─ Trigger button styles per variant ─────────────────────────────────────
   const triggerStyle = variant === 'corner'
     ? {
-        // Small icon-only badge at bottom-right corner of the logo tile
         position: 'absolute',
         bottom: '-7px',
         right: '-7px',
@@ -123,7 +121,6 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
         boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
       }
     : {
-        // Pill button anchored to bottom-right of the hero section
         position: 'absolute',
         bottom: '1.75rem',
         right: '2rem',
@@ -146,7 +143,6 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
         letterSpacing: '0.02em',
       }
 
-  // ─ Panel always centered over the zone ─────────────────────────────────
   const panelStyle = {
     position: 'absolute',
     top: '50%',
@@ -165,18 +161,16 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
     <div style={{ position: 'relative' }}>
       {children}
 
-      {/* Trigger button */}
       {!open && (
         <button
           onClick={() => { setDraft(value || ''); setOpen(true) }}
           style={triggerStyle}
           title={`Change ${label}`}
         >
-          {variant === 'corner' ? '\uD83D\uDDBC' : <>🖼️&nbsp;{label}</>}
+          {variant === 'corner' ? '\uD83D\uDDBC' : <>\uD83D\uDDBC\uFE0F&nbsp;{label}</>}
         </button>
       )}
 
-      {/* Editor panel */}
       {open && (
         <div style={panelStyle}>
           <p style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontSize: '12px',
@@ -309,7 +303,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
   return (
     <>
       <Head>
-        <title>{editMode ? '\u270F\uFE0F Editing \u2014 ' : ''}{c.seoTitle || tenant.name}</title>
+        <title>{editMode ? 'Editing — ' : ''}{c.seoTitle || tenant.name}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -475,7 +469,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 <button onClick={() => setEditMode(true)}
                   style={{ background: '#20b2aa', color: '#fff', border: 'none', borderRadius: '6px',
                     padding: '7px 18px', cursor: 'pointer', fontSize: '13px', fontFamily: 'sans-serif', fontWeight: 700 }}>
-                  \u270F\uFE0F Edit Site
+                  ✏ Edit Site
                 </button>
                 <button onClick={() => signOut({ callbackUrl: '/login' })}
                   style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)',
@@ -494,10 +488,6 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
         {/* NAV */}
         <header className="apex-nav">
           <a className="apex-nav__logo" href="#">
-            {/*
-              Logo tile wrapped in EditImage with variant="corner".
-              overflow: visible on .apex-nav__logo-tile so the badge peeks outside.
-            */}
             <EditImage
               value={c.logoUrl}
               onChange={v => set('logoUrl', v)}
@@ -533,7 +523,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           </ul>
         </header>
 
-        {/* HERO — EditImage variant="section" anchors button to bottom-right */}
+        {/* HERO */}
         <EditImage
           value={c.heroImageUrl}
           onChange={v => set('heroImageUrl', v)}
