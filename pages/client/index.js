@@ -14,7 +14,10 @@ const s = {
   header:      { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' },
   name:        { margin: 0, fontSize: '1.6rem', fontWeight: 700 },
   email:       { margin: '0.2rem 0 0', color: '#666', fontSize: '0.9rem' },
+  headerActions: { display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' },
   logoutBtn:   { padding: '0.4rem 1rem', cursor: 'pointer', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem' },
+  previewBtn:  { padding: '0.4rem 1rem', cursor: 'pointer', background: '#fff', border: '1px solid #20b2aa', color: '#20b2aa', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', display: 'inline-block' },
+  editSiteBtn: { padding: '0.4rem 1rem', cursor: 'pointer', background: '#20b2aa', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', display: 'inline-block' },
   adminBanner: { background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '8px', padding: '0.7rem 1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   adminText:   { color: '#1d4ed8', fontSize: '0.9rem', fontWeight: 500 },
   backBtn:     { background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: '5px', padding: '0.35rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' },
@@ -133,9 +136,27 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           <h1 style={s.name}>Welcome, {clientName || clientEmail}</h1>
           <p style={s.email}>{clientEmail}</p>
         </div>
-        {viewerRole !== 'admin' && (
-          <button style={s.logoutBtn} onClick={() => signOut({ callbackUrl: '/login' })}>Log Out</button>
-        )}
+        <div style={s.headerActions}>
+          <a
+            href={`/site/${siteSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={s.previewBtn}
+          >
+            👁 Preview Site
+          </a>
+          <a
+            href={`/site/${siteSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={s.editSiteBtn}
+          >
+            ✏ Edit Site
+          </a>
+          {viewerRole !== 'admin' && (
+            <button style={s.logoutBtn} onClick={() => signOut({ callbackUrl: '/login' })}>Log Out</button>
+          )}
+        </div>
       </div>
 
       {/* ─────────────────── CONTENT ──────────────────── */}
