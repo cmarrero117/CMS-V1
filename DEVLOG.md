@@ -13,7 +13,10 @@ Always update this file after any meaningful change.
 
 **Repo:** https://github.com/cmarrero117/CMS-V1
 
+**Live CMS:** https://cms-v1-flame.vercel.app
+
 **Demo client site:** Apex Pain Clinic (`apex-pain-clinic` slug)
+- Live site: https://cmarrero117.github.io/apex-pain-clinic-v2
 - Client user: `drjohn117@gmail.com` (role: client, tenantId set)
 - Admin user: `cmarrerow117@gmail.com` (role: admin, no tenantId)
 
@@ -119,6 +122,47 @@ import { authOptions } from '../../../lib/authOptions' // ✅ correct
 
 ---
 
+### 2026-07-20 — Apex Pain Clinic Wired to Live CMS API
+
+**Goal:** Connect the live Apex Pain Clinic static site (GitHub Pages) to pull content from the CMS-V1 MongoDB API instead of the local `cms-config.json` file.
+
+**What was done:**
+
+1. **Confirmed CMS is live on Vercel** at https://cms-v1-flame.vercel.app — login page and API routes confirmed working.
+
+2. **Diagnosed `cms.js`** in `apex-pain-clinic-v2` repo — it was fetching from a local `cms-config.json` file with no connection to the CMS-V1 API whatsoever.
+
+3. **Rewrote `js/cms.js`** in `apex-pain-clinic-v2`:
+   - Now fetches from `https://cms-v1-flame.vercel.app/api/site-content/apex-pain-clinic`
+   - Added `buildFlatMap()` function to map camelCase API fields (e.g. `heroHeadline`) to the flat `data-cms` attribute keys used in the HTML (e.g. `hero-headline`)
+   - Services array mapped by fixed order: `pain → scs → joint → nerve → prp → meds`
+   - Graceful fallback: if API is unreachable, page renders with existing static HTML — nothing breaks
+
+4. **Discovered Tenant collection was empty** — the `tenants` collection in MongoDB had no documents, meaning the `SiteContent` document for `apex-pain-clinic` was orphaned (its `tenantId` pointed to a non-existent tenant).
+
+5. **Created Tenant document manually** via one-liner node command. New Tenant `_id`: `6a5db8cf0a30f12c4cb3445c`
+
+6. **Patched orphaned SiteContent document** — updated its `tenantId` field to point to the newly created Tenant `_id`.
+
+7. **Hit E11000 duplicate key error** when running `seed-apex.js` — the upsert filter used both `siteSlug + tenantId`, so MongoDB tried to insert a new doc instead of updating the existing one.
+   - **Fix:** Patched `tenantId` on existing doc first (step 6), then re-ran seed.
+
+8. **Ran `node scripts/seed-apex.js` successfully:**
+   - Services seeded: 6
+   - Team members seeded: 3
+   - All contact, hero, SEO fields populated
+
+9. **Verified end-to-end:** API at `/api/site-content/apex-pain-clinic` returns full document. Live Apex site renders content correctly from MongoDB.
+
+**Files changed:**
+- `apex-pain-clinic-v2/js/cms.js` — rewritten to fetch from CMS API
+- `CMS-V1/scripts/seed-apex.js` — new file, seeds full Apex SiteContent
+
+**Key note for seed-apex.js going forward:**
+The upsert filter must use `siteSlug` only (not `siteSlug + tenantId`) to avoid duplicate key errors if the tenantId ever changes. The script currently handles this correctly via `findOneAndUpdate({ siteSlug: SLUG }, ...)` with the tenantId in the `$set` payload.
+
+---
+
 ## Open Items / Next Steps
 
 - [ ] Inline editing sidebar (font controls, image upload, advanced options)
@@ -127,8 +171,9 @@ import { authOptions } from '../../../lib/authOptions' // ✅ correct
 - [ ] Mobile QA pass on site editor
 - [ ] Remove debug `console.log` lines from `pages/api/site-content/[slug].js` once confirmed stable
 - [ ] SEO panel UI in edit mode
-- [ ] Vercel deployment + environment variables setup
 - [ ] AI chatbot assistant (deferred — cost dependent)
+- [ ] Test full edit loop: log in as drjohn117@gmail.com → edit a field in CMS editor → save → verify Apex site reflects change on reload
+- [ ] Extend cms.js field mapping as more SiteContent fields become editable (team members, stats, about text)
 
 ---
 
@@ -140,3 +185,5 @@ import { authOptions } from '../../../lib/authOptions' // ✅ correct
 4. Read file + SHA from GitHub before any edit — never write blind.
 5. Restart `npm run dev` after any changes to `lib/authOptions.js` or API routes.
 6. After sign-out/sign-in cycles during debugging, always verify session contents via the debug log before assuming the fix worked.
+7. `seed-apex.js` upsert filter uses `siteSlug` only — never include `tenantId` in the filter or it will cause E11000 duplicate key errors if the tenant was recreated.
+8. The `tenants` collection must have a document before running any seed script — verify with the raw collection query if seed scripts fail.
