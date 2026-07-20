@@ -75,9 +75,9 @@ function EditSpan({ value, onChange, multiline = false, style, darkBg = false })
 }
 
 // ─── EditImage: inline image URL editor ──────────────────────────────────────
-// Renders children normally. In edit mode, shows a click-to-edit overlay.
-// On click, opens an inline panel with URL input + live preview.
-function EditImage({ value, onChange, label = 'Image URL', darkBg = false, children, editMode }) {
+// variant="corner"  → small icon badge anchored to bottom-right corner (logo tile)
+// variant="section" → pill button anchored to bottom-right of section (hero)
+function EditImage({ value, onChange, label = 'Image URL', children, editMode, variant = 'section' }) {
   const [open, setOpen]   = useState(false)
   const [draft, setDraft] = useState(value || '')
   const inputRef          = useRef(null)
@@ -86,7 +86,6 @@ function EditImage({ value, onChange, label = 'Image URL', darkBg = false, child
     if (open && inputRef.current) inputRef.current.focus()
   }, [open])
 
-  // Keep draft in sync if parent resets
   const prevValue = useRef(value)
   useEffect(() => {
     if (value !== prevValue.current) {
@@ -100,36 +99,86 @@ function EditImage({ value, onChange, label = 'Image URL', darkBg = false, child
 
   if (!editMode) return <>{children}</>
 
+  // ─ Trigger button styles per variant ─────────────────────────────────────
+  const triggerStyle = variant === 'corner'
+    ? {
+        // Small icon-only badge at bottom-right corner of the logo tile
+        position: 'absolute',
+        bottom: '-7px',
+        right: '-7px',
+        width: '20px',
+        height: '20px',
+        borderRadius: '50%',
+        background: '#20b2aa',
+        border: '2px solid #fff',
+        color: '#fff',
+        fontSize: '10px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        zIndex: 200,
+        padding: 0,
+        lineHeight: 1,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+      }
+    : {
+        // Pill button anchored to bottom-right of the hero section
+        position: 'absolute',
+        bottom: '1.75rem',
+        right: '2rem',
+        background: 'rgba(13,45,74,0.85)',
+        color: '#7ee8e4',
+        border: '1.5px solid rgba(32,178,170,0.7)',
+        borderRadius: '50px',
+        padding: '7px 16px',
+        cursor: 'pointer',
+        fontFamily: 'sans-serif',
+        fontSize: '12px',
+        fontWeight: 700,
+        backdropFilter: 'blur(4px)',
+        zIndex: 10,
+        whiteSpace: 'nowrap',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+        letterSpacing: '0.02em',
+      }
+
+  // ─ Panel always centered over the zone ─────────────────────────────────
+  const panelStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%,-50%)',
+    background: '#0d2d4a',
+    border: '2px solid #20b2aa',
+    borderRadius: '12px',
+    padding: '1.25rem',
+    zIndex: 20000,
+    width: 'min(380px, 90vw)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+  }
+
   return (
     <div style={{ position: 'relative' }}>
       {children}
-      {/* Edit trigger overlay */}
+
+      {/* Trigger button */}
       {!open && (
         <button
           onClick={() => { setDraft(value || ''); setOpen(true) }}
-          style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%,-50%)',
-            background: 'rgba(13,45,74,0.82)', color: '#7ee8e4',
-            border: '2px dashed rgba(32,178,170,0.8)', borderRadius: '8px',
-            padding: '8px 18px', cursor: 'pointer',
-            fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 700,
-            backdropFilter: 'blur(2px)', zIndex: 10,
-            whiteSpace: 'nowrap',
-          }}
+          style={triggerStyle}
+          title={`Change ${label}`}
         >
-          \uD83D\uDDBC\uFE0F Change {label}
+          {variant === 'corner' ? '\uD83D\uDDBC' : <>🖼️&nbsp;{label}</>}
         </button>
       )}
-      {/* Inline editor panel */}
+
+      {/* Editor panel */}
       {open && (
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%',
-          transform: 'translate(-50%,-50%)',
-          background: '#0d2d4a', border: '2px solid #20b2aa',
-          borderRadius: '12px', padding: '1.25rem', zIndex: 20,
-          width: 'min(380px, 90vw)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-        }}>
+        <div style={panelStyle}>
           <p style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontSize: '12px',
             fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             {label}
@@ -140,7 +189,10 @@ function EditImage({ value, onChange, label = 'Image URL', darkBg = false, child
             value={draft}
             placeholder="https://example.com/image.jpg"
             onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirm() } if (e.key === 'Escape') cancel() }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); confirm() }
+              if (e.key === 'Escape') cancel()
+            }}
             style={{
               width: '100%', boxSizing: 'border-box',
               background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(32,178,170,0.6)',
@@ -148,10 +200,8 @@ function EditImage({ value, onChange, label = 'Image URL', darkBg = false, child
               fontSize: '13px', padding: '8px 10px', outline: 'none',
             }}
           />
-          {/* Live preview */}
           {draft && (
-            <div style={{ marginTop: '10px', borderRadius: '6px', overflow: 'hidden',
-              height: '80px', background: '#111' }}>
+            <div style={{ marginTop: '10px', borderRadius: '6px', overflow: 'hidden', height: '80px', background: '#111' }}>
               <img src={draft} alt="preview"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }}
                 onError={e => { e.target.style.display = 'none' }}
@@ -165,9 +215,9 @@ function EditImage({ value, onChange, label = 'Image URL', darkBg = false, child
                 fontWeight: 700, fontSize: '13px', fontFamily: 'sans-serif' }}>\u2713 Apply</button>
             {value && (
               <button onMouseDown={e => { e.preventDefault(); onChange(''); setOpen(false) }}
-                style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.4)',
-                  borderRadius: '6px', padding: '8px 12px', cursor: 'pointer',
-                  fontSize: '12px', fontFamily: 'sans-serif' }}>Remove</button>
+                style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5',
+                  border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px',
+                  padding: '8px 12px', cursor: 'pointer', fontSize: '12px', fontFamily: 'sans-serif' }}>Remove</button>
             )}
             <button onMouseDown={e => { e.preventDefault(); cancel() }}
               style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none',
@@ -248,7 +298,6 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
 
   const services = c.services || []
 
-  // Hero background: if heroImageUrl is set, use it as a blended overlay
   const heroStyle = c.heroImageUrl
     ? {
         backgroundImage: `linear-gradient(135deg,rgba(13,45,74,0.88) 0%,rgba(26,92,138,0.82) 50%,rgba(14,74,110,0.88) 100%), url(${c.heroImageUrl})`,
@@ -284,7 +333,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
             width: 36px; height: 36px; border-radius: 7px;
             background: linear-gradient(180deg,#1e7a8c,#0e4a6e);
             display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-            overflow: hidden;
+            overflow: visible;
           }
           .apex-nav__wordmark { display: flex; flex-direction: column; line-height: 1.1; }
           .apex-nav__apex { font-size: 0.95rem; font-weight: 800; letter-spacing: 0.1em; color: #0d3b5e; }
@@ -387,9 +436,6 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           .footer__bottom p { font-size: 0.8rem; }
           .footer__legal { display: flex; gap: 1.5rem; }
           .footer__legal a { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
-
-          /* IMAGE EDIT HINT in edit mode */
-          .img-edit-zone { position: relative; cursor: pointer; }
         `}</style>
       </Head>
 
@@ -404,7 +450,9 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontWeight: 700, fontSize: '13px' }}>CMS</span>
             <span style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'sans-serif', fontSize: '12px' }}>
-              {editMode ? 'Click any outlined element or \uD83D\uDDBC\uFE0F button to edit. Save & Exit when done.' : 'Previewing ' + tenant.name}
+              {editMode
+                ? 'Click outlined text or image buttons to edit. Save & Exit when done.'
+                : 'Previewing ' + tenant.name}
             </span>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -446,16 +494,21 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
         {/* NAV */}
         <header className="apex-nav">
           <a className="apex-nav__logo" href="#">
-            {/* Logo tile: shows custom logo image if set, otherwise default SVG */}
+            {/*
+              Logo tile wrapped in EditImage with variant="corner".
+              overflow: visible on .apex-nav__logo-tile so the badge peeks outside.
+            */}
             <EditImage
               value={c.logoUrl}
               onChange={v => set('logoUrl', v)}
               label="Logo Image"
               editMode={editMode}
+              variant="corner"
             >
               <div className="apex-nav__logo-tile">
                 {c.logoUrl ? (
-                  <img src={c.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={c.logoUrl} alt="Logo"
+                    style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '7px' }} />
                 ) : (
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36" aria-hidden="true">
                     <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1e7a8c"/><stop offset="100%" stopColor="#0e4a6e"/></linearGradient></defs>
@@ -480,12 +533,13 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           </ul>
         </header>
 
-        {/* HERO */}
+        {/* HERO — EditImage variant="section" anchors button to bottom-right */}
         <EditImage
           value={c.heroImageUrl}
           onChange={v => set('heroImageUrl', v)}
           label="Hero Background"
           editMode={editMode}
+          variant="section"
         >
           <section className="apex-hero" style={heroStyle}>
             <div className="apex-hero__bg" />
