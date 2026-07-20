@@ -1,287 +1,140 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Head from 'next/head'
 import { getSession } from 'next-auth/react'
+import { signOut } from 'next-auth/react'
 import dbConnect from '../../lib/db'
 import SiteContent from '../../lib/models/SiteContent'
 import Tenant from '../../lib/models/Tenant'
 
-// ─── Allowed fonts ────────────────────────────────────────────────────────────
-const FONTS = [
-  { label: 'Georgia (Default)', value: "'Georgia', serif" },
-  { label: 'Inter',             value: 'Inter, sans-serif' },
-  { label: 'Merriweather',      value: 'Merriweather, serif' },
-  { label: 'Playfair Display',  value: "'Playfair Display', serif" },
-  { label: 'Roboto',            value: 'Roboto, sans-serif' },
-  { label: 'Oswald',            value: 'Oswald, sans-serif' },
-]
+// ─── Inline editable span ─────────────────────────────────────────────────────
+// Click to edit, Escape to cancel, Enter to confirm (single-line).
+// Changes are held locally and only committed to parent state on confirm.
+function EditSpan({ value, onChange, multiline = false, className, style, tag: Tag = 'span' }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft]     = useState(value || '')
+  const inputRef              = useRef(null)
 
-// ─── Shared micro-styles ──────────────────────────────────────────────────────
-const btn = {
-  base: {
-    border: '1px solid #3f3f5a', borderRadius: '6px', padding: '5px 14px',
-    cursor: 'pointer', fontSize: '12px', fontFamily: 'sans-serif',
-    display: 'inline-flex', alignItems: 'center', gap: '4px',
-  },
-  dark:   { background: '#2a2a3e', color: '#fff' },
-  indigo: { background: '#4f46e5', color: '#fff', border: 'none' },
-  green:  { background: '#10b981', color: '#fff', border: 'none' },
-  red:    { background: '#ef4444', color: '#fff', border: 'none' },
-  white:  { background: '#fff',    color: '#4f46e5', border: 'none' },
-  gray:   { background: '#6b7280', color: '#fff', border: 'none' },
-}
-const mkBtn = (...variants) => Object.assign({}, btn.base, ...variants.map(v => btn[v]))
-
-// ─── EditableText ─────────────────────────────────────────────────────────────
-// Uses a plain <input> or <textarea> instead of contentEditable.
-// Native inputs never have cursor-jump issues.
-function EditableText({ value, onChange, multiline = false, style, editMode, placeholder }) {
-  const [editing, setEditing]     = useState(false)
-  const [local, setLocal]         = useState(value || '')
-  const [showFonts, setShowFonts] = useState(false)
-  const [font, setFont]           = useState(FONTS[0].value)
-
-  // When the parent resets (e.g. cancel), sync if not editing
+  // Sync draft when parent resets (e.g. cancel all)
   const prevValue = useRef(value)
-  if (!editing && value !== prevValue.current) {
-    prevValue.current = value
-    // Only update local if value actually changed externally
-    if (local !== value) setLocal(value || '')
-  }
+  useEffect(() => {
+    if (value !== prevValue.current) {
+      prevValue.current = value
+      if (!editing) setDraft(value || '')
+    }
+  }, [value, editing])
 
-  const mergedStyle = { ...style, fontFamily: font }
+  useEffect(() => {
+    if (editing && inputRef.current) inputRef.current.focus()
+  }, [editing])
 
-  // ── View mode ────────────────────────────────────────────────────────────
-  if (!editMode) {
-    return <span style={mergedStyle}>{value || ''}</span>
-  }
+  const confirm = () => { onChange(draft); setEditing(false) }
+  const cancel  = () => { setDraft(value || ''); setEditing(false) }
 
-  // ── Edit mode: not yet clicked ────────────────────────────────────────────
   if (!editing) {
     return (
-      <span
-        onClick={() => { setLocal(value || ''); setEditing(true) }}
+      <Tag
+        className={className}
         style={{
-          ...mergedStyle,
-          outline: '1px dashed #c7d2fe',
-          borderRadius: '3px',
-          padding: '1px 4px',
+          ...style,
           cursor: 'pointer',
-          display: 'inline-block',
-          minWidth: '20px',
+          outline: '2px dashed rgba(126,232,228,0.6)',
+          outlineOffset: '3px',
+          borderRadius: '3px',
+          position: 'relative',
         }}
         title="Click to edit"
-      >
-        {value || <span style={{ color: '#bbb', fontStyle: 'italic' }}>{placeholder}</span>}
-        <span style={{ fontSize: '9px', color: '#818cf8', marginLeft: '4px',
-          fontFamily: 'sans-serif', fontWeight: 700, verticalAlign: 'super' }}>edit</span>
-      </span>
+        onClick={() => { setDraft(value || ''); setEditing(true) }}
+        dangerouslySetInnerHTML={{ __html: value || '<em style="opacity:0.5">Click to edit…</em>' }}
+      />
     )
   }
 
-  // ── Edit mode: active input ────────────────────────────────────────────────
   const inputStyle = {
-    fontFamily: font,
+    background: 'rgba(0,0,0,0.55)',
+    border: '2px solid #7ee8e4',
+    borderRadius: '4px',
+    color: '#fff',
     fontSize: 'inherit',
-    color: 'inherit',
-    background: 'rgba(255,255,255,0.07)',
-    border: '2px solid #4f46e5',
-    borderRadius: '3px',
-    padding: '2px 6px',
-    outline: 'none',
-    width: multiline ? '100%' : 'auto',
-    minWidth: '120px',
-    resize: multiline ? 'vertical' : 'none',
+    fontFamily: 'inherit',
+    fontWeight: 'inherit',
     lineHeight: 'inherit',
-    display: multiline ? 'block' : 'inline',
+    letterSpacing: 'inherit',
+    padding: '4px 8px',
+    width: '100%',
     boxSizing: 'border-box',
+    outline: 'none',
+    resize: multiline ? 'vertical' : 'none',
   }
 
-  const handleSave  = () => { onChange(local); setEditing(false) }
-  const handleCancel = () => { setLocal(value || ''); setEditing(false) }
-
   return (
-    <span style={{ position: 'relative', display: multiline ? 'block' : 'inline-block' }}>
-      {/* Toolbar */}
-      <span style={{
-        position: 'absolute', bottom: '100%', left: 0, zIndex: 9999,
-        display: 'inline-flex', gap: '4px', background: '#1e1e2e',
-        padding: '5px 8px', borderRadius: '8px', marginBottom: '4px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.5)', whiteSpace: 'nowrap',
-      }}>
-        <button onMouseDown={e => { e.preventDefault(); setShowFonts(f => !f) }}
-          style={mkBtn('dark')}>Aa &#9662;</button>
-        {showFonts && (
-          <span style={{
-            position: 'absolute', top: '100%', left: 0, background: '#2a2a3e',
-            borderRadius: '8px', padding: '6px', zIndex: 10000, minWidth: '180px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)', marginTop: '4px',
-          }}>
-            {FONTS.map(f => (
-              <span key={f.value}
-                onMouseDown={e => { e.preventDefault(); setFont(f.value); setShowFonts(false) }}
-                style={{
-                  display: 'block', padding: '6px 10px', cursor: 'pointer',
-                  fontFamily: f.value, color: '#fff', borderRadius: '4px',
-                  background: font === f.value ? '#4f46e5' : 'transparent',
-                }}>{f.label}</span>
-            ))}
-          </span>
-        )}
-        <button onMouseDown={e => { e.preventDefault(); handleSave() }}
-          style={mkBtn('indigo')}>&#10003; Save</button>
-        <button onMouseDown={e => { e.preventDefault(); handleCancel() }}
-          style={mkBtn('dark')}>&#10005;</button>
-      </span>
-
-      {/* Native input — zero cursor issues */}
+    <span style={{ display: 'block', position: 'relative' }}>
       {multiline ? (
         <textarea
-          autoFocus
-          value={local}
-          onChange={e => setLocal(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Escape') handleCancel() }}
+          ref={inputRef}
+          value={draft}
           rows={3}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Escape') cancel() }}
           style={inputStyle}
         />
       ) : (
         <input
-          autoFocus
+          ref={inputRef}
           type="text"
-          value={local}
-          onChange={e => setLocal(e.target.value)}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
           onKeyDown={e => {
-            if (e.key === 'Enter') { e.preventDefault(); handleSave() }
-            if (e.key === 'Escape') handleCancel()
+            if (e.key === 'Enter') { e.preventDefault(); confirm() }
+            if (e.key === 'Escape') cancel()
           }}
           style={inputStyle}
         />
       )}
+      <span style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+        <button
+          onMouseDown={e => { e.preventDefault(); confirm() }}
+          style={{ background: '#7ee8e4', color: '#0d3b5e', border: 'none', borderRadius: '4px',
+            padding: '4px 12px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>
+          ✓ Apply
+        </button>
+        <button
+          onMouseDown={e => { e.preventDefault(); cancel() }}
+          style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none',
+            borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px' }}>
+          ✕
+        </button>
+      </span>
     </span>
   )
 }
 
-// ─── EditableImage ────────────────────────────────────────────────────────────
-function EditableImage({ src, alt, onChange, editMode, imgStyle }) {
-  const [hover, setHover]   = useState(false)
-  const [modal, setModal]   = useState(false)
-  const [urlVal, setUrlVal] = useState(src || '')
-  const fileRef             = useRef(null)
-
-  const imgEl = src
-    ? <img src={src} alt={alt} style={imgStyle} loading="lazy" />
-    : <div style={{ ...imgStyle, background: '#f3f4f6', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', color: '#9ca3af', fontSize: '14px', fontFamily: 'sans-serif' }}>No image</div>
-
-  if (!editMode) return imgEl
-
-  return (
-    <>
-      <div style={{ position: 'relative', display: 'inline-block', cursor: 'pointer' }}
-        onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-        onClick={() => setModal(true)}>
-        {imgEl}
-        {hover && (
-          <div style={{
-            position: 'absolute', inset: 0, background: 'rgba(79,70,229,0.75)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 700, fontSize: '13px', fontFamily: 'sans-serif',
-            borderRadius: imgStyle.borderRadius || '0',
-          }}>Change Image</div>
-        )}
-      </div>
-
-      {modal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
-          <div style={{ background: '#1e1e2e', borderRadius: '12px', padding: '28px',
-            width: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.6)', fontFamily: 'sans-serif' }}>
-            <h3 style={{ color: '#fff', marginTop: 0 }}>Replace Image</h3>
-            <p style={{ color: '#a1a1b5', fontSize: '13px' }}>Paste a URL or upload from your computer.</p>
-            <input type="text" placeholder="https://example.com/photo.jpg" value={urlVal}
-              onChange={e => setUrlVal(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px',
-                border: '1px solid #3f3f5a', background: '#2a2a3e', color: '#fff',
-                fontSize: '14px', marginBottom: '10px', boxSizing: 'border-box' }} />
-            <p style={{ color: '#a1a1b5', fontSize: '12px', textAlign: 'center' }}>&mdash; or &mdash;</p>
-            <input type="file" accept="image/*" ref={fileRef} style={{ display: 'none' }}
-              onChange={e => {
-                const file = e.target.files[0]
-                if (!file) return
-                const reader = new FileReader()
-                reader.onload = ev => { onChange(ev.target.result); setModal(false) }
-                reader.readAsDataURL(file)
-              }} />
-            <button onClick={() => fileRef.current.click()}
-              style={{ ...mkBtn('dark'), width: '100%', justifyContent: 'center', marginBottom: '10px', padding: '9px' }}>
-              Upload from computer
-            </button>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => { onChange(urlVal); setModal(false) }}
-                style={{ ...mkBtn('indigo'), flex: 1, justifyContent: 'center', padding: '9px' }}>Use URL</button>
-              <button onClick={() => setModal(false)}
-                style={{ ...mkBtn('dark'), flex: 1, justifyContent: 'center', padding: '9px' }}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
-
-// ─── Page styles ──────────────────────────────────────────────────────────────
-const S = {
-  page:      { fontFamily: "'Georgia', serif", color: '#1a1a1a', background: '#fff', minHeight: '100vh' },
-  nav:       { borderBottom: '1px solid #e5e5e5', padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', position: 'sticky', zIndex: 100 },
-  navBrand:  { fontWeight: 700, fontSize: '1.1rem', letterSpacing: '-0.01em', textDecoration: 'none', color: '#1a1a1a', display: 'flex', alignItems: 'center', gap: '0.6rem' },
-  navLinks:  { display: 'flex', gap: '1.5rem', fontSize: '0.9rem' },
-  navLink:   { color: '#444', textDecoration: 'none' },
-  hero:      { padding: 'clamp(4rem,10vw,8rem) clamp(1.5rem,6vw,5rem)', maxWidth: '860px', margin: '0 auto' },
-  h1:        { fontSize: 'clamp(2rem,5vw,3.5rem)', fontWeight: 700, lineHeight: 1.15, margin: 0, color: '#111' },
-  sub:       { marginTop: '1rem', fontSize: 'clamp(1rem,2vw,1.2rem)', color: '#555', lineHeight: 1.5, maxWidth: '60ch' },
-  heroImg:   { width: '100%', maxHeight: '480px', objectFit: 'cover', display: 'block', marginTop: '2rem', borderRadius: '8px' },
-  hr:        { border: 'none', borderTop: '1px solid #eee', margin: '0 clamp(1.5rem,6vw,5rem)' },
-  section:   { padding: 'clamp(3rem,8vw,6rem) clamp(1.5rem,6vw,5rem)', maxWidth: '860px', margin: '0 auto' },
-  eyebrow:   { fontSize: '0.78rem', fontFamily: 'sans-serif', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#999', marginBottom: '1.25rem' },
-  body:      { fontSize: 'clamp(1rem,2vw,1.15rem)', lineHeight: 1.75, maxWidth: '65ch', margin: 0, color: '#333' },
-  grid:      { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.5rem', marginTop: '0.5rem' },
-  card:      { background: '#f9f9f9', borderRadius: '8px', padding: '1.25rem 1.5rem', border: '1px solid #eee' },
-  cardTitle: { fontWeight: 700, fontSize: '1rem', marginBottom: '0.4rem', color: '#111' },
-  cardDesc:  { fontSize: '0.9rem', color: '#555', lineHeight: 1.6, margin: 0 },
-  contactRow:{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontFamily: 'sans-serif', fontSize: '0.95rem', color: '#333' },
-  footer:    { borderTop: '1px solid #eee', padding: '1.5rem clamp(1.5rem,6vw,5rem)', fontSize: '0.8rem', color: '#aaa', fontFamily: 'sans-serif', marginTop: '2rem' },
-  notFound:  { fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: '#444', background: '#f9f9f9' },
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
-export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slug }) {
-  const [c, setC]               = useState(initialC || {})
+export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slug }) {
+  const [c, setC]           = useState(initialC || {})
   const [editMode, setEditMode] = useState(false)
-  const [saving, setSaving]     = useState(false)
-  const [saved, setSaved]       = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState('')
 
   function set(field, value) {
     setC(prev => ({ ...prev, [field]: value }))
-    setSaved(false)
   }
 
-  async function handleSave() {
+  async function handleSaveAndExit() {
     setSaving(true)
+    setSaveMsg('')
     try {
-      const payload = {
-        ...c,
-        businessName: c.businessName || (tenant && tenant.name) || '',
-      }
       const res = await fetch(`/api/site-content/${slug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(c),
       })
       if (res.ok) {
-        setSaved(true)
-        setTimeout(() => setSaved(false), 3000)
+        setSaveMsg('✓ Saved!')
+        setEditMode(false)
+        setTimeout(() => setSaveMsg(''), 3000)
       } else {
-        const errData = await res.json().catch(() => ({}))
-        alert('Save failed: ' + (errData.error || res.status + ' ' + res.statusText))
+        const err = await res.json().catch(() => ({}))
+        alert('Save failed: ' + (err.error || res.statusText))
       }
     } catch (err) {
       alert('Network error: ' + err.message)
@@ -289,165 +142,253 @@ export default function PublicSite({ notFound, tenant, c: initialC, canEdit, slu
     setSaving(false)
   }
 
+  function handleDiscard() {
+    setC(initialC || {})
+    setEditMode(false)
+  }
+
   if (notFound || !tenant) {
     return (
-      <div style={S.notFound}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>404</h1>
-        <p>This site does not exist yet.</p>
+      <div style={{ fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: '#444' }}>
+        <h1>404</h1><p>This site does not exist yet.</p>
       </div>
     )
   }
 
-  const siteName = c.businessName || tenant.name
-
   return (
     <>
       <Head>
-        <title>{c.seoTitle || siteName}</title>
-        {c.seoDescription && <meta name="description" content={c.seoDescription} />}
-        {c.seoKeywords    && <meta name="keywords"    content={c.seoKeywords} />}
-        <meta property="og:type"        content="website" />
-        <meta property="og:title"       content={c.ogTitle || siteName} />
-        {c.ogDescription  && <meta property="og:description" content={c.ogDescription} />}
-        {c.ogImageUrl     && <meta property="og:image"       content={c.ogImageUrl} />}
+        <title>{editMode ? '✏️ Editing — ' : ''}{c.seoTitle || tenant.name}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {editMode && (
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet" />
-        )}
+        {/* Apex fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        <style>{`
+          *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: 'Inter', sans-serif; background: #fff; color: #1a1a1a; }
+          a { text-decoration: none; }
+
+          /* ── NAV ── */
+          .apex-nav {
+            position: sticky; top: 0; z-index: 100;
+            background: #fff; border-bottom: 1px solid #e5e7eb;
+            padding: 0 clamp(1.5rem, 5vw, 3rem);
+            display: flex; align-items: center; justify-content: space-between;
+            height: 68px;
+          }
+          .apex-nav__logo { display: flex; align-items: center; gap: 10px; }
+          .apex-nav__logo-tile {
+            width: 36px; height: 36px; border-radius: 7px;
+            background: linear-gradient(180deg,#1e7a8c,#0e4a6e);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+          }
+          .apex-nav__wordmark { display: flex; flex-direction: column; line-height: 1.1; }
+          .apex-nav__apex { font-size: 0.95rem; font-weight: 800; letter-spacing: 0.1em; color: #0d3b5e; }
+          .apex-nav__sub  { font-size: 0.65rem; font-weight: 500; color: #4b7fa3; letter-spacing: 0.04em; text-transform: uppercase; }
+          .apex-nav__links { display: flex; align-items: center; gap: 2rem; list-style: none; }
+          .apex-nav__links a { font-size: 0.875rem; font-weight: 500; color: #374151; }
+          .apex-nav__links a:hover { color: #1a5c8a; }
+          .btn-nav {
+            background: #20b2aa; color: #fff; border-radius: 50px;
+            padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 600;
+          }
+          .btn-nav:hover { background: #1a9a92; }
+
+          /* ── HERO ── */
+          .apex-hero {
+            position: relative; min-height: 100vh;
+            background: linear-gradient(135deg, #0d2d4a 0%, #1a5c8a 50%, #0e4a6e 100%);
+            display: flex; align-items: center; overflow: hidden;
+          }
+          .apex-hero__bg {
+            position: absolute; inset: 0;
+            background-image: radial-gradient(ellipse at 70% 50%, rgba(30,122,140,0.25) 0%, transparent 60%);
+            pointer-events: none;
+          }
+          .apex-hero__content {
+            position: relative; z-index: 2;
+            max-width: 1200px; margin: 0 auto; padding: clamp(5rem,10vw,9rem) clamp(1.5rem,5vw,3rem);
+          }
+          .apex-hero__eyebrow {
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em;
+            text-transform: uppercase; color: #7ee8e4; margin-bottom: 1.25rem;
+          }
+          .apex-hero__heading {
+            font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 800; line-height: 1.1;
+            color: #fff; margin-bottom: 1.25rem; max-width: 14ch;
+          }
+          .apex-hero__sub {
+            font-size: clamp(1rem, 2vw, 1.2rem); line-height: 1.7; color: rgba(255,255,255,0.82);
+            max-width: 52ch; margin-bottom: 2.25rem;
+          }
+          .apex-hero__actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+          .btn-primary {
+            background: #20b2aa; color: #fff; border-radius: 50px;
+            padding: 0.85rem 2rem; font-size: 1rem; font-weight: 600; border: none; cursor: pointer;
+            display: inline-block;
+          }
+          .btn-primary:hover { background: #1a9a92; }
+          .btn-ghost {
+            background: transparent; color: #fff; border-radius: 50px;
+            padding: 0.85rem 2rem; font-size: 1rem; font-weight: 600;
+            border: 2px solid rgba(255,255,255,0.45); cursor: pointer; display: inline-block;
+          }
+          .btn-ghost:hover { border-color: #fff; }
+
+          /* ── EDIT MODE highlights ── */
+          .edit-mode-active .editable-hint::after {
+            content: ' ✏️';
+            font-size: 0.7em;
+            opacity: 0.7;
+          }
+        `}</style>
       </Head>
 
-      {/* ── Edit bar ── */}
+      {/* ── CMS TOOLBAR ── */}
       {canEdit && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99998,
-          background: editMode ? '#1e1e2e' : '#4f46e5',
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999,
+          background: editMode ? '#0d2d4a' : '#1a5c8a',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '9px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
+          padding: '10px 24px', boxShadow: '0 2px 16px rgba(0,0,0,0.4)',
         }}>
-          <span style={{ color: '#fff', fontFamily: 'sans-serif', fontWeight: 600, fontSize: '13px' }}>
-            {editMode
-              ? 'Edit Mode — click any dashed element to edit, then save'
-              : 'Welcome back — click Edit Site to make changes'}
-          </span>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {editMode && (
-              <button onClick={handleSave} disabled={saving}
-                style={{ ...mkBtn(saving ? 'gray' : 'green'), fontWeight: 700, fontSize: '13px', padding: '7px 18px' }}>
-                {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save Changes'}
-              </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontWeight: 700, fontSize: '13px' }}>
+              CMS
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'sans-serif', fontSize: '12px' }}>
+              {editMode
+                ? 'Click any highlighted element to edit. Save & Exit when done.'
+                : 'You are previewing ' + tenant.name}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {saveMsg && (
+              <span style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 600 }}>
+                {saveMsg}
+              </span>
             )}
-            <button onClick={() => setEditMode(e => !e)}
-              style={{ ...mkBtn(editMode ? 'red' : 'white'), fontWeight: 700, fontSize: '13px', padding: '7px 18px' }}>
-              {editMode ? 'Exit Edit Mode' : 'Edit Site'}
-            </button>
+            {editMode ? (
+              <>
+                <button onClick={handleDiscard}
+                  style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '6px', padding: '7px 16px', cursor: 'pointer', fontSize: '13px', fontFamily: 'sans-serif' }}>
+                  Discard Changes
+                </button>
+                <button onClick={handleSaveAndExit} disabled={saving}
+                  style={{ background: saving ? '#555' : '#20b2aa', color: '#fff', border: 'none',
+                    borderRadius: '6px', padding: '7px 18px', cursor: 'pointer', fontSize: '13px',
+                    fontFamily: 'sans-serif', fontWeight: 700 }}>
+                  {saving ? 'Saving…' : 'Save & Exit'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setEditMode(true)}
+                  style={{ background: '#20b2aa', color: '#fff', border: 'none',
+                    borderRadius: '6px', padding: '7px 18px', cursor: 'pointer',
+                    fontSize: '13px', fontFamily: 'sans-serif', fontWeight: 700 }}>
+                  ✏️ Edit Site
+                </button>
+                <button onClick={() => signOut({ callbackUrl: '/login' })}
+                  style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '6px', padding: '7px 14px', cursor: 'pointer', fontSize: '13px', fontFamily: 'sans-serif' }}>
+                  Sign Out
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      <div style={{ paddingTop: canEdit ? '48px' : '0' }}>
-        <div style={S.page}>
+      {/* ── PAGE CANVAS ── */}
+      <div style={{ paddingTop: canEdit ? '46px' : '0' }} className={editMode ? 'edit-mode-active' : ''}>
 
-          {/* ── NAV ── */}
-          <header style={{ ...S.nav, top: canEdit ? '48px' : '0' }}>
-            <a href="#" style={S.navBrand}>
-              {c.logoUrl && (
-                <EditableImage src={c.logoUrl} alt={siteName + ' logo'}
-                  onChange={v => set('logoUrl', v)} editMode={editMode}
-                  imgStyle={{ height: '32px', objectFit: 'contain' }} />
-              )}
-              {siteName}
-            </a>
-            <nav style={S.navLinks}>
-              {(c.services || []).length > 0 && <a href="#services" style={S.navLink}>Services</a>}
-              <a href="#about"   style={S.navLink}>About</a>
-              <a href="#contact" style={S.navLink}>Contact</a>
-            </nav>
-          </header>
-
-          {/* ── HERO ── */}
-          <section style={S.hero}>
-            <h1 style={S.h1}>
-              <EditableText value={c.heroHeadline} placeholder="Add a headline..."
-                onChange={v => set('heroHeadline', v)} editMode={editMode} />
-            </h1>
-            {(c.heroSubheadline || editMode) && (
-              <p style={S.sub}>
-                <EditableText value={c.heroSubheadline} placeholder="Add a subheadline..."
-                  onChange={v => set('heroSubheadline', v)} editMode={editMode} />
-              </p>
-            )}
-            {(c.heroImageUrl || editMode) && (
-              <EditableImage src={c.heroImageUrl} alt={siteName + ' hero image'}
-                onChange={v => set('heroImageUrl', v)} editMode={editMode}
-                imgStyle={{ width: '100%', maxHeight: '480px', objectFit: 'cover', display: 'block', marginTop: '2rem', borderRadius: '8px' }} />
-            )}
-          </section>
-
-          <hr style={S.hr} />
-
-          {/* ── SERVICES ── */}
-          {(c.services || []).length > 0 && (
-            <>
-              <section id="services" style={S.section}>
-                <h2 style={S.eyebrow}>Services</h2>
-                <div style={S.grid}>
-                  {c.services.map((svc, i) => (
-                    <div key={i} style={S.card}>
-                      <p style={S.cardTitle}>
-                        <EditableText value={svc.title} placeholder={'Service ' + (i + 1)}
-                          onChange={v => { const u = [...c.services]; u[i] = { ...u[i], title: v }; set('services', u) }}
-                          editMode={editMode} />
-                      </p>
-                      <p style={S.cardDesc}>
-                        <EditableText value={svc.description} placeholder="Description..."
-                          multiline
-                          onChange={v => { const u = [...c.services]; u[i] = { ...u[i], description: v }; set('services', u) }}
-                          editMode={editMode} />
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-              <hr style={S.hr} />
-            </>
-          )}
-
-          {/* ── ABOUT ── */}
-          <section id="about" style={S.section}>
-            <h2 style={S.eyebrow}>About</h2>
-            <p style={S.body}>
-              <EditableText value={c.aboutText} placeholder="Tell visitors about your business..."
-                multiline
-                onChange={v => set('aboutText', v)} editMode={editMode} />
-            </p>
-          </section>
-
-          <hr style={S.hr} />
-
-          {/* ── CONTACT ── */}
-          <section id="contact" style={S.section}>
-            <h2 style={S.eyebrow}>Contact</h2>
-            <div style={S.contactRow}>
-              {(c.contactPhone || editMode) && (
-                <EditableText value={c.contactPhone} placeholder="+1 (555) 000-0000"
-                  onChange={v => set('contactPhone', v)} editMode={editMode} />
-              )}
-              {(c.contactEmail || editMode) && (
-                <EditableText value={c.contactEmail} placeholder="hello@yourbusiness.com"
-                  onChange={v => set('contactEmail', v)} editMode={editMode} />
-              )}
-              {(c.contactAddress || editMode) && (
-                <EditableText value={c.contactAddress} placeholder="123 Main St, City, State"
-                  onChange={v => set('contactAddress', v)} editMode={editMode} />
-              )}
+        {/* NAV */}
+        <header className="apex-nav">
+          <a className="apex-nav__logo" href="#">
+            <div className="apex-nav__logo-tile">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36" aria-hidden="true">
+                <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1e7a8c"/><stop offset="100%" stopColor="#0e4a6e"/></linearGradient></defs>
+                <rect width="36" height="36" rx="7" fill="url(#tg)"/>
+                <g transform="translate(3,3) scale(0.0619)">
+                  <path fill="white" d="M391.745,114.138c-0.769-1.032-1.965-1.659-3.251-1.706c-0.367-0.014-35.121-1.422-51.205-12.485c3.222-8.449,9.949-28.502,5.212-37.722c-1.381-2.689-3.611-4.463-6.449-5.131c-5.178-1.218-11.607-1.598-17.826-1.965c-6.818-0.402-14.374-0.848-18.805-2.454l9.026-25.79c0.446-1.274,0.26-2.684-0.5-3.799c-0.761-1.115-2.006-1.802-3.355-1.852c-0.788-0.029-79.312-3.105-123.326-20.853c-0.274-0.111-0.56-0.192-0.851-0.244C180.182,0.096,179.534,0,178.565,0c-3.549,0-15.517,1.498-20.512,20.766c-1.353,5.217-2.554,10.132-3.715,14.885c-3.186,13.042-6.195,25.359-11.495,40.2c-1.017,2.847-1.983,5.368-2.837,7.592c-3.173,8.275-5.088,13.271-2.841,18.025c2.019,4.272,6.726,6.545,14.173,9.027c6.715,2.238,19.115,2.331,34.815,2.447c26.736,0.199,63.316,0.47,81.36,12.918c0.808,0.686,2.686,1.995,5.263,1.995c8.389,0,11.413-12.35,12.779-23.575c4.569,1.318,12.032,4.512,17.67,12.029c0.326,0.436,0.646,0.873,0.965,1.312c6.734,9.229,13.697,18.771,77.842,25.898c0.159,0.018,0.316,0.026,0.473,0.026c1.916,0,3.623-1.295,4.112-3.188l5.836-22.617C392.775,116.495,392.514,115.17,391.745,114.138z"/>
+                </g>
+              </svg>
             </div>
-          </section>
+            <div className="apex-nav__wordmark">
+              <span className="apex-nav__apex">APEX</span>
+              <span className="apex-nav__sub">Pain Clinic</span>
+            </div>
+          </a>
+          <ul className="apex-nav__links">
+            <li><a href="#">Services</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Our Team</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a className="btn-nav" href="#">Book Appointment</a></li>
+          </ul>
+        </header>
 
-          {/* ── FOOTER ── */}
-          <footer style={S.footer}>
-            {siteName} &mdash; Powered by CMS-V1
-          </footer>
+        {/* HERO */}
+        <section className="apex-hero">
+          <div className="apex-hero__bg" />
+          <div className="apex-hero__content">
+            <p className="apex-hero__eyebrow">Board-Certified Pain Management</p>
 
+            {editMode ? (
+              <div className="apex-hero__heading">
+                <EditSpan
+                  value={c.heroHeadline}
+                  onChange={v => set('heroHeadline', v)}
+                  tag="span"
+                  style={{ display: 'block' }}
+                />
+              </div>
+            ) : (
+              <h1 className="apex-hero__heading"
+                dangerouslySetInnerHTML={{ __html: c.heroHeadline || 'Reclaim Your Life<br>From Chronic Pain' }} />
+            )}
+
+            {editMode ? (
+              <p className="apex-hero__sub">
+                <EditSpan
+                  value={c.heroSubheadline}
+                  onChange={v => set('heroSubheadline', v)}
+                  multiline
+                />
+              </p>
+            ) : (
+              <p className="apex-hero__sub">{c.heroSubheadline}</p>
+            )}
+
+            <div className="apex-hero__actions">
+              {editMode ? (
+                <span style={{ display: 'inline-block' }}>
+                  <EditSpan
+                    value={c.heroCtaText}
+                    onChange={v => set('heroCtaText', v)}
+                    style={{
+                      display: 'inline-block',
+                      background: '#20b2aa', color: '#fff', borderRadius: '50px',
+                      padding: '0.85rem 2rem', fontSize: '1rem', fontWeight: 600,
+                    }}
+                  />
+                </span>
+              ) : (
+                <a className="btn-primary" href="#">{c.heroCtaText || 'Book a Consultation'}</a>
+              )}
+              <a className="btn-ghost" href="#">Our Services</a>
+            </div>
+          </div>
+        </section>
+
+        {/* Placeholder for Phase 2 sections */}
+        <div style={{ padding: '4rem 2rem', textAlign: 'center', color: '#9ca3af',
+          fontFamily: 'sans-serif', fontSize: '0.9rem', borderTop: '1px solid #f3f4f6' }}>
+          Services, About, Team, and Contact sections coming in Phase 2.
         </div>
       </div>
     </>
@@ -461,7 +402,6 @@ export async function getServerSideProps(context) {
 
   try {
     await dbConnect()
-
     const tenant = await Tenant.findOne({ slug }).lean()
     if (!tenant) return { props: { notFound: true, tenant: null, c: null, canEdit: false, slug } }
 
@@ -471,6 +411,8 @@ export async function getServerSideProps(context) {
       businessName:    raw.businessName    || '',
       heroHeadline:    raw.heroHeadline    || '',
       heroSubheadline: raw.heroSubheadline || '',
+      heroCtaText:     raw.heroCtaText     || 'Book a Consultation',
+      heroCtaUrl:      raw.heroCtaUrl      || '#contact',
       aboutText:       raw.aboutText       || '',
       services:       (raw.services || []).map(s => ({ title: s.title || '', description: s.description || '' })),
       contactPhone:    raw.contactPhone    || '',
@@ -481,9 +423,6 @@ export async function getServerSideProps(context) {
       seoTitle:        raw.seoTitle        || '',
       seoDescription:  raw.seoDescription  || '',
       seoKeywords:     raw.seoKeywords     || '',
-      ogTitle:         raw.ogTitle         || '',
-      ogDescription:   raw.ogDescription   || '',
-      ogImageUrl:      raw.ogImageUrl      || '',
     } : {}
 
     const canEdit = !!(
@@ -492,16 +431,10 @@ export async function getServerSideProps(context) {
     )
 
     return {
-      props: {
-        notFound: false,
-        tenant: { name: tenant.name, slug: tenant.slug },
-        c,
-        canEdit,
-        slug,
-      }
+      props: { notFound: false, tenant: { name: tenant.name, slug: tenant.slug }, c, canEdit, slug }
     }
   } catch (err) {
-    console.error('PublicSite error:', err.message)
+    console.error('SiteEditor error:', err.message)
     return { props: { notFound: true, tenant: null, c: null, canEdit: false, slug } }
   }
 }
