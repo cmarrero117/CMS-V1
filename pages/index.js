@@ -1,4 +1,7 @@
-import { getSession } from 'next-auth/react'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '../lib/authOptions'
+import dbConnect from '../lib/db'
+import Tenant from '../lib/models/Tenant'
 
 export default function Home() {
   return (
@@ -10,10 +13,27 @@ export default function Home() {
 }
 
 export async function getServerSideProps(context) {
-  const session = await getSession(context)
-  if (session) {
-    const dest = session.user.role === 'admin' ? '/admin' : '/client'
-    return { redirect: { destination: dest, permanent: false } }
+  const session = await getServerSession(context.req, context.res, authOptions)
+
+  if (!session) return { props: {} }
+
+  if (session.user.role === 'admin') {
+    return { redirect: { destination: '/admin', permanent: false } }
   }
+
+  if (session.user.role === 'client') {
+    try {
+      await dbConnect()
+      const tenant = await Tenant.findById(session.user.tenantId).lean()
+      if (tenant?.slug) {
+        return { redirect: { destination: `/site/${tenant.slug}`, permanent: false } }
+      }
+    } catch (e) {
+      console.error('Index redirect error:', e)
+    }
+    // Fallback to form dashboard if slug lookup fails
+    return { redirect: { destination: '/client', permanent: false } }
+  }
+
   return { props: {} }
 }
