@@ -75,8 +75,6 @@ function EditSpan({ value, onChange, multiline = false, style, darkBg = false })
 }
 
 // ─── EditImage: inline image URL editor ──────────────────────────────────────
-// variant="corner"  → small icon badge anchored to bottom-right corner (logo tile)
-// variant="section" → pill button anchored to bottom-right of section (hero)
 function EditImage({ value, onChange, label = 'Image URL', children, editMode, variant = 'section' }) {
   const [open, setOpen]   = useState(false)
   const [draft, setDraft] = useState(value || '')
@@ -101,87 +99,45 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
 
   const triggerStyle = variant === 'corner'
     ? {
-        position: 'absolute',
-        bottom: '-7px',
-        right: '-7px',
-        width: '20px',
-        height: '20px',
-        borderRadius: '50%',
-        background: '#20b2aa',
-        border: '2px solid #fff',
-        color: '#fff',
-        fontSize: '10px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        zIndex: 200,
-        padding: 0,
-        lineHeight: 1,
+        position: 'absolute', bottom: '-7px', right: '-7px',
+        width: '20px', height: '20px', borderRadius: '50%',
+        background: '#20b2aa', border: '2px solid #fff', color: '#fff',
+        fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', zIndex: 200, padding: 0, lineHeight: 1,
         boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
       }
     : {
-        position: 'absolute',
-        bottom: '1.75rem',
-        right: '2rem',
-        background: 'rgba(13,45,74,0.85)',
-        color: '#7ee8e4',
-        border: '1.5px solid rgba(32,178,170,0.7)',
-        borderRadius: '50px',
-        padding: '7px 16px',
-        cursor: 'pointer',
-        fontFamily: 'sans-serif',
-        fontSize: '12px',
-        fontWeight: 700,
-        backdropFilter: 'blur(4px)',
-        zIndex: 10,
-        whiteSpace: 'nowrap',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
-        letterSpacing: '0.02em',
+        position: 'absolute', bottom: '1.75rem', right: '2rem',
+        background: 'rgba(13,45,74,0.85)', color: '#7ee8e4',
+        border: '1.5px solid rgba(32,178,170,0.7)', borderRadius: '50px',
+        padding: '7px 16px', cursor: 'pointer', fontFamily: 'sans-serif',
+        fontSize: '12px', fontWeight: 700, backdropFilter: 'blur(4px)',
+        zIndex: 10, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center',
+        gap: '6px', boxShadow: '0 2px 12px rgba(0,0,0,0.4)', letterSpacing: '0.02em',
       }
 
   const panelStyle = {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%,-50%)',
-    background: '#0d2d4a',
-    border: '2px solid #20b2aa',
-    borderRadius: '12px',
-    padding: '1.25rem',
-    zIndex: 20000,
-    width: 'min(380px, 90vw)',
+    position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+    background: '#0d2d4a', border: '2px solid #20b2aa', borderRadius: '12px',
+    padding: '1.25rem', zIndex: 20000, width: 'min(380px, 90vw)',
     boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
   }
 
   return (
     <div style={{ position: 'relative' }}>
       {children}
-
       {!open && (
-        <button
-          onClick={() => { setDraft(value || ''); setOpen(true) }}
-          style={triggerStyle}
-          title={`Change ${label}`}
-        >
+        <button onClick={() => { setDraft(value || ''); setOpen(true) }} style={triggerStyle} title={`Change ${label}`}>
           {variant === 'corner' ? '\uD83D\uDDBC' : <>\uD83D\uDDBC\uFE0F&nbsp;{label}</>}
         </button>
       )}
-
       {open && (
         <div style={panelStyle}>
           <p style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontSize: '12px',
             fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             {label}
           </p>
-          <input
-            ref={inputRef}
-            type="url"
-            value={draft}
-            placeholder="https://example.com/image.jpg"
+          <input ref={inputRef} type="url" value={draft} placeholder="https://example.com/image.jpg"
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') { e.preventDefault(); confirm() }
@@ -300,10 +256,31 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
       }
     : {}
 
+  // Shared button styles for toolbar
+  const tbBtn = (variant = 'ghost') => ({
+    background: variant === 'primary' ? '#20b2aa'
+      : variant === 'settings' ? 'rgba(255,255,255,0.08)'
+      : 'rgba(255,255,255,0.1)',
+    color: '#fff',
+    border: variant === 'ghost' ? '1px solid rgba(255,255,255,0.3)'
+      : variant === 'settings' ? '1px solid rgba(255,255,255,0.2)'
+      : 'none',
+    borderRadius: '6px',
+    padding: '7px 14px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontFamily: 'sans-serif',
+    fontWeight: variant === 'primary' ? 700 : 400,
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+  })
+
   return (
     <>
       <Head>
-        <title>{editMode ? 'Editing — ' : ''}{c.seoTitle || tenant.name}</title>
+        <title>{editMode ? 'Editing \u2014 ' : ''}{c.seoTitle || tenant.name}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -433,7 +410,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
         `}</style>
       </Head>
 
-      {/* CMS TOOLBAR */}
+      {/* ─── CMS TOOLBAR ─────────────────────────────────────────────────── */}
       {canEdit && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999,
@@ -441,6 +418,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '10px 24px', boxShadow: '0 2px 16px rgba(0,0,0,0.4)',
         }}>
+          {/* Left: brand + status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontWeight: 700, fontSize: '13px' }}>CMS</span>
             <span style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'sans-serif', fontSize: '12px' }}>
@@ -449,56 +427,48 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 : 'Previewing ' + tenant.name}
             </span>
           </div>
+
+          {/* Right: actions */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {saveMsg && <span style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 600 }}>{saveMsg}</span>}
+            {saveMsg && (
+              <span style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 600 }}>
+                {saveMsg}
+              </span>
+            )}
+
+            {/* ⚙ Settings — always visible */}
+            <a href="/client" style={tbBtn('settings')} title="Advanced settings, SEO & bulk editing">
+              ⚙ Settings
+            </a>
+
             {editMode ? (
               <>
-                <button onClick={handleDiscard}
-                  style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)',
-                    borderRadius: '6px', padding: '7px 16px', cursor: 'pointer', fontSize: '13px', fontFamily: 'sans-serif' }}>
-                  Discard
-                </button>
+                <button onClick={handleDiscard} style={tbBtn('ghost')}>Discard</button>
                 <button onClick={handleSaveAndExit} disabled={saving}
-                  style={{ background: saving ? '#555' : '#20b2aa', color: '#fff', border: 'none',
-                    borderRadius: '6px', padding: '7px 18px', cursor: 'pointer', fontSize: '13px', fontFamily: 'sans-serif', fontWeight: 700 }}>
+                  style={{ ...tbBtn('primary'), opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'Saving\u2026' : 'Save & Exit'}
                 </button>
               </>
             ) : (
               <>
-                <button onClick={() => setEditMode(true)}
-                  style={{ background: '#20b2aa', color: '#fff', border: 'none', borderRadius: '6px',
-                    padding: '7px 18px', cursor: 'pointer', fontSize: '13px', fontFamily: 'sans-serif', fontWeight: 700 }}>
-                  ✏ Edit Site
-                </button>
-                <button onClick={() => signOut({ callbackUrl: '/login' })}
-                  style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)',
-                    borderRadius: '6px', padding: '7px 14px', cursor: 'pointer', fontSize: '13px', fontFamily: 'sans-serif' }}>
-                  Sign Out
-                </button>
+                <button onClick={() => setEditMode(true)} style={tbBtn('primary')}>\u270F Edit Site</button>
+                <button onClick={() => signOut({ callbackUrl: '/login' })} style={tbBtn('ghost')}>Sign Out</button>
               </>
             )}
           </div>
         </div>
       )}
 
-      {/* PAGE CANVAS */}
+      {/* ─── PAGE CANVAS ─────────────────────────────────────────────────── */}
       <div style={{ paddingTop: canEdit ? '46px' : '0' }}>
 
         {/* NAV */}
         <header className="apex-nav">
           <a className="apex-nav__logo" href="#">
-            <EditImage
-              value={c.logoUrl}
-              onChange={v => set('logoUrl', v)}
-              label="Logo Image"
-              editMode={editMode}
-              variant="corner"
-            >
+            <EditImage value={c.logoUrl} onChange={v => set('logoUrl', v)} label="Logo Image" editMode={editMode} variant="corner">
               <div className="apex-nav__logo-tile">
                 {c.logoUrl ? (
-                  <img src={c.logoUrl} alt="Logo"
-                    style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '7px' }} />
+                  <img src={c.logoUrl} alt="Logo" style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '7px' }} />
                 ) : (
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36" aria-hidden="true">
                     <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1e7a8c"/><stop offset="100%" stopColor="#0e4a6e"/></linearGradient></defs>
@@ -524,13 +494,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
         </header>
 
         {/* HERO */}
-        <EditImage
-          value={c.heroImageUrl}
-          onChange={v => set('heroImageUrl', v)}
-          label="Hero Background"
-          editMode={editMode}
-          variant="section"
-        >
+        <EditImage value={c.heroImageUrl} onChange={v => set('heroImageUrl', v)} label="Hero Background" editMode={editMode} variant="section">
           <section className="apex-hero" style={heroStyle}>
             <div className="apex-hero__bg" />
             <div className="apex-hero__content">
