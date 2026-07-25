@@ -34,7 +34,7 @@ function EditSpan({ value, onChange, multiline = false, style, darkBg = false })
           outlineOffset: '3px', borderRadius: '3px', display: 'inline-block' }}
         title="Click to edit"
         onClick={() => { setDraft(value || ''); setEditing(true) }}
-        dangerouslySetInnerHTML={{ __html: value || '<em style="opacity:0.45">Click to edit\u2026</em>' }}
+        dangerouslySetInnerHTML={{ __html: value || '<em style="opacity:0.45">Click to edit…</em>' }}
       />
     )
   }
@@ -65,10 +65,10 @@ function EditSpan({ value, onChange, multiline = false, style, darkBg = false })
       <span style={{ display: 'flex', gap: '6px', marginTop: '5px' }}>
         <button onMouseDown={e => { e.preventDefault(); confirm() }}
           style={{ background: '#20b2aa', color: '#fff', border: 'none', borderRadius: '4px',
-            padding: '4px 12px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>\u2713 Apply</button>
+            padding: '4px 12px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>✓ Apply</button>
         <button onMouseDown={e => { e.preventDefault(); cancel() }}
           style={{ background: 'rgba(0,0,0,0.1)', color: darkBg ? '#fff' : '#333', border: 'none',
-            borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px' }}>\u2715</button>
+            borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px' }}>✕</button>
       </span>
     </span>
   )
@@ -128,7 +128,7 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
       {children}
       {!open && (
         <button onClick={() => { setDraft(value || ''); setOpen(true) }} style={triggerStyle} title={`Change ${label}`}>
-          {variant === 'corner' ? '\uD83D\uDDBC' : <>\uD83D\uDDBC\uFE0F&nbsp;{label}</>}
+          {variant === 'corner' ? '🖼' : <>🖼️&nbsp;{label}</>}
         </button>
       )}
       {open && (
@@ -162,7 +162,7 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
             <button onMouseDown={e => { e.preventDefault(); confirm() }}
               style={{ flex: 1, background: '#20b2aa', color: '#fff', border: 'none',
                 borderRadius: '6px', padding: '8px', cursor: 'pointer',
-                fontWeight: 700, fontSize: '13px', fontFamily: 'sans-serif' }}>\u2713 Apply</button>
+                fontWeight: 700, fontSize: '13px', fontFamily: 'sans-serif' }}>✓ Apply</button>
             {value && (
               <button onMouseDown={e => { e.preventDefault(); onChange(''); setOpen(false) }}
                 style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5',
@@ -172,7 +172,7 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
             <button onMouseDown={e => { e.preventDefault(); cancel() }}
               style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none',
                 borderRadius: '6px', padding: '8px 12px', cursor: 'pointer',
-                fontSize: '12px', fontFamily: 'sans-serif' }}>\u2715</button>
+                fontSize: '12px', fontFamily: 'sans-serif' }}>✕</button>
           </div>
         </div>
       )}
@@ -182,12 +182,12 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
 
 // ─── Service accent colours ───────────────────────────────────────────────────
 const SERVICE_ACCENTS = [
-  { bg: '#e8f4fd', border: '#1a5c8a', icon: '\uD83E\uDDB4' },
-  { bg: '#e8f8f7', border: '#20b2aa', icon: '\u26A1' },
-  { bg: '#eef6ff', border: '#4b7fa3', icon: '\uD83D\uDC89' },
-  { bg: '#f0faf9', border: '#1a9a92', icon: '\uD83E\uDDEC' },
-  { bg: '#fef9ee', border: '#d97706', icon: '\uD83E\uDE78' },
-  { bg: '#f5f3ff', border: '#7c3aed', icon: '\uD83D\uDC8A' },
+  { bg: '#e8f4fd', border: '#1a5c8a', icon: '🦴' },
+  { bg: '#e8f8f7', border: '#20b2aa', icon: '⚡' },
+  { bg: '#eef6ff', border: '#4b7fa3', icon: '💉' },
+  { bg: '#f0faf9', border: '#1a9a92', icon: '🧬' },
+  { bg: '#fef9ee', border: '#d97706', icon: '🩸' },
+  { bg: '#f5f3ff', border: '#7c3aed', icon: '💊' },
 ]
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -219,7 +219,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
         body: JSON.stringify(c),
       })
       if (res.ok) {
-        setSaveMsg('\u2713 Saved!')
+        setSaveMsg('✓ Saved!')
         setEditMode(false)
         setTimeout(() => setSaveMsg(''), 3000)
       } else {
@@ -280,7 +280,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
   return (
     <>
       <Head>
-        <title>{editMode ? 'Editing \u2014 ' : ''}{c.seoTitle || tenant.name}</title>
+        <title>{editMode ? 'Editing — ' : ''}{c.seoTitle || tenant.name}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -446,12 +446,12 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 <button onClick={handleDiscard} style={tbBtn('ghost')}>Discard</button>
                 <button onClick={handleSaveAndExit} disabled={saving}
                   style={{ ...tbBtn('primary'), opacity: saving ? 0.6 : 1 }}>
-                  {saving ? 'Saving\u2026' : 'Save & Exit'}
+                  {saving ? 'Saving…' : 'Save & Exit'}
                 </button>
               </>
             ) : (
               <>
-                <button onClick={() => setEditMode(true)} style={tbBtn('primary')}>\u270F Edit Site</button>
+                <button onClick={() => setEditMode(true)} style={tbBtn('primary')}>✏ Edit Site</button>
                 <button onClick={() => signOut({ callbackUrl: '/login' })} style={tbBtn('ghost')}>Sign Out</button>
               </>
             )}
@@ -534,7 +534,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           <ul className="trust-bar__list">
             {['Board-Certified Physicians','Accepting New Patients','Most Insurance Accepted','Same-Week Appointments',
               'Board-Certified Physicians','Accepting New Patients','Most Insurance Accepted','Same-Week Appointments'].map((t,i) => (
-              <li key={i} className="trust-bar__item">\u2726 {t}</li>
+              <li key={i} className="trust-bar__item">✦ {t}</li>
             ))}
           </ul>
         </section>
@@ -592,7 +592,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                     <EditSpan value={c.aboutText} onChange={v => set('aboutText', v)} multiline />
                   </div>
                 ) : (
-                  <p className="teaser__body">{c.aboutText || 'Founded by fellowship-trained pain specialists, Apex Pain Clinic brings together cutting-edge interventional techniques and whole-patient care. We treat the cause \u2014 not just the symptom.'}</p>
+                  <p className="teaser__body">{c.aboutText || 'Founded by fellowship-trained pain specialists, Apex Pain Clinic brings together cutting-edge interventional techniques and whole-patient care. We treat the cause — not just the symptom.'}</p>
                 )}
                 <a className="btn-primary" href="#contact">Learn About Us</a>
               </div>
@@ -646,7 +646,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                   </li>
                   <li>
                     <span className="contact-info__label">Hours</span>
-                    <p>Monday \u2013 Friday: 8 AM \u2013 5 PM<br />Saturday: 9 AM \u2013 1 PM</p>
+                    <p>Monday – Friday: 8 AM – 5 PM<br />Saturday: 9 AM – 1 PM</p>
                   </li>
                 </ul>
               </div>
@@ -661,15 +661,15 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 </div>
                 <div className="form-group">
                   <label>Service of Interest</label>
-                  <select disabled><option>Select a service\u2026</option></select>
+                  <select disabled><option>Select a service…</option></select>
                 </div>
                 <div className="form-group">
                   <label>Tell Us About Your Pain</label>
-                  <textarea placeholder="Briefly describe your pain\u2026" disabled />
+                  <textarea placeholder="Briefly describe your pain…" disabled />
                 </div>
                 <button className="form-submit" disabled>Send Request</button>
                 <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.75rem', textAlign: 'center' }}>
-                  Form preview only \u2014 submissions active on the live site.
+                  Form preview only — submissions active on the live site.
                 </p>
               </div>
             </div>
@@ -682,7 +682,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
             <div className="footer__main">
               <div>
                 <p className="footer__brand-name">{c.businessName || 'Apex Pain Clinic'}</p>
-                <p className="footer__tagline">Compassionate, expert pain care \u2014 helping patients reclaim their lives.</p>
+                <p className="footer__tagline">Compassionate, expert pain care — helping patients reclaim their lives.</p>
               </div>
               <div>
                 <p className="footer__col-heading">Services</p>
@@ -707,7 +707,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
               </div>
             </div>
             <div className="footer__bottom">
-              <p>\u00A9 2026 {c.businessName || 'Apex Pain Clinic'}. All rights reserved.</p>
+              <p>© 2026 {c.businessName || 'Apex Pain Clinic'}. All rights reserved.</p>
               <nav className="footer__legal">
                 <a href="#">Privacy Policy</a>
                 <a href="#">Terms of Use</a>
