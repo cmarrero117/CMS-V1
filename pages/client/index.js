@@ -8,7 +8,7 @@ import dbConnect from '../../lib/db'
 import SiteContent from '../../lib/models/SiteContent'
 import Tenant from '../../lib/models/Tenant'
 
-// ─── Styles ──────────────────────────────────────────────────────────────────────────────────
+// ─── Styles ────────────────────────────────────────────────────────────────
 const s = {
   page:        { fontFamily: 'system-ui, sans-serif', padding: '2rem', maxWidth: '780px', margin: '0 auto', color: '#1a1a1a' },
   header:      { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' },
@@ -16,8 +16,7 @@ const s = {
   email:       { margin: '0.2rem 0 0', color: '#666', fontSize: '0.9rem' },
   headerActions: { display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' },
   logoutBtn:   { padding: '0.4rem 1rem', cursor: 'pointer', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem' },
-  previewBtn:  { padding: '0.4rem 1rem', cursor: 'pointer', background: '#fff', border: '1px solid #20b2aa', color: '#20b2aa', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', display: 'inline-block' },
-  editSiteBtn: { padding: '0.4rem 1rem', cursor: 'pointer', background: '#20b2aa', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', display: 'inline-block' },
+  backToSiteBtn: { padding: '0.4rem 1rem', cursor: 'pointer', background: '#fff', border: '1px solid #20b2aa', color: '#20b2aa', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', display: 'inline-block' },
   adminBanner: { background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '8px', padding: '0.7rem 1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   adminText:   { color: '#1d4ed8', fontSize: '0.9rem', fontWeight: 500 },
   backBtn:     { background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: '5px', padding: '0.35rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' },
@@ -46,7 +45,6 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
-  // ── Services helpers
   const setService = (i, key, val) => {
     const updated = [...(form.services || [])]
     updated[i] = { ...updated[i], [key]: val }
@@ -62,7 +60,6 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
     setForm(f => ({ ...f, services: updated }))
   }
 
-  // ── Team Members helpers
   const setTeamMember = (i, key, val) => {
     const updated = [...(form.teamMembers || [])]
     updated[i] = { ...updated[i], [key]: val }
@@ -78,7 +75,6 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
     setForm(f => ({ ...f, teamMembers: updated }))
   }
 
-  // ── Testimonials helpers
   const setTestimonial = (i, key, val) => {
     const updated = [...(form.testimonials || [])]
     updated[i] = { ...updated[i], [key]: val }
@@ -137,21 +133,12 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           <p style={s.email}>{clientEmail}</p>
         </div>
         <div style={s.headerActions}>
+          {/* Single link back to the live site — the toolbar there handles Preview/Edit */}
           <a
             href={`/site/${siteSlug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={s.previewBtn}
+            style={s.backToSiteBtn}
           >
-            👁 Preview Site
-          </a>
-          <a
-            href={`/site/${siteSlug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={s.editSiteBtn}
-          >
-            ✏ Edit Site
+            ← Back to Site
           </a>
           {viewerRole !== 'admin' && (
             <button style={s.logoutBtn} onClick={() => signOut({ callbackUrl: '/login' })}>Log Out</button>
@@ -159,7 +146,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
         </div>
       </div>
 
-      {/* ─────────────────── CONTENT ──────────────────── */}
+      {/* CONTENT */}
       <div style={s.section}>
         <h2 style={s.sectionHead}>Content</h2>
 
@@ -207,7 +194,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
         </div>
       </div>
 
-      {/* ─────────────────── TEAM ────────────────────── */}
+      {/* TEAM */}
       <div style={s.section}>
         <h2 style={s.sectionHead}>Team Members <span style={{ fontSize: '0.8rem', fontWeight: 400, textTransform: 'none', color: '#9ca3af' }}>(up to 6)</span></h2>
         {(form.teamMembers || []).map((member, i) => (
@@ -237,7 +224,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
         )}
       </div>
 
-      {/* ─────────────────── TESTIMONIALS ─────────────── */}
+      {/* TESTIMONIALS */}
       <div style={s.section}>
         <h2 style={s.sectionHead}>Testimonials <span style={{ fontSize: '0.8rem', fontWeight: 400, textTransform: 'none', color: '#9ca3af' }}>(up to 4)</span></h2>
         {(form.testimonials || []).map((t, i) => (
@@ -264,7 +251,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
         )}
       </div>
 
-      {/* ─────────────────── CONTACT ─────────────────── */}
+      {/* CONTACT */}
       <div style={s.section}>
         <h2 style={s.sectionHead}>Contact</h2>
         <Field label="Phone" hint="">
@@ -278,7 +265,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
         </Field>
       </div>
 
-      {/* ─────────────────── MEDIA ──────────────────── */}
+      {/* MEDIA */}
       <div style={s.section}>
         <h2 style={s.sectionHead}>Media</h2>
         <Field label="Logo URL" hint="Paste the URL of your logo image. Leave blank to use the default.">
@@ -289,7 +276,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
         </Field>
       </div>
 
-      {/* ─────────────────── SEO ───────────────────── */}
+      {/* SEO */}
       <div style={s.section}>
         <h2 style={s.sectionHead}>SEO &amp; Social</h2>
         <Field label="Page Title" hint="Shows in the browser tab and Google search results. Ideal: 50–60 characters.">
@@ -312,7 +299,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
         </Field>
       </div>
 
-      {/* ─────────────────── SAVE ───────────────────── */}
+      {/* SAVE */}
       <div style={s.saveBar}>
         <button style={{ ...s.saveBtn, opacity: saveState === 'saving' ? 0.7 : 1 }} onClick={handleSaveAll} disabled={saveState === 'saving'}>
           {saveState === 'saving' ? 'Saving…' : 'Save All Changes'}
