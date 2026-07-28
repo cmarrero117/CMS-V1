@@ -128,7 +128,7 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
       {children}
       {!open && (
         <button onClick={() => { setDraft(value || ''); setOpen(true) }} style={triggerStyle} title={`Change ${label}`}>
-          {variant === 'corner' ? '&#128444;' : <>{label}</>}
+          {variant === 'corner' ? '\u{1F5BC}' : <>{label}</>}
         </button>
       )}
       {open && (
@@ -190,12 +190,12 @@ const SERVICE_ACCENTS = [
   { bg: '#f5f3ff', border: '#7c3aed', icon: '&#128138;' },
 ]
 
-// ─── Default stat fallbacks ───────────────────────────────────────────────────
+// ─── Default stat fallbacks (generic, not Apex-specific) ─────────────────────
 const DEFAULT_STATS = [
-  { number: '1,200+', label: 'Patients Treated Annually' },
-  { number: '15+',    label: 'Years of Combined Experience' },
-  { number: '94%',    label: 'Patient Satisfaction Rate' },
-  { number: '6',      label: 'Specialized Treatment Types' },
+  { number: '', label: '' },
+  { number: '', label: '' },
+  { number: '', label: '' },
+  { number: '', label: '' },
 ]
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -264,7 +264,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
       }
     : {}
 
-  const navSubtitle = c.navSubtitle || 'Pain Clinic'
+  const navSubtitle = c.navSubtitle || ''
 
   const statNumber = (n, def) => (n && n.trim()) ? n : def
   const statLabel  = (l, def) => (l && l.trim()) ? l : def
@@ -482,11 +482,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                   <img src={c.logoUrl} alt="Logo" style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '7px' }} />
                 ) : (
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36" aria-hidden="true">
-                    <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1e7a8c"/><stop offset="100%" stopColor="#0e4a6e"/></linearGradient></defs>
-                    <rect width="36" height="36" rx="7" fill="url(#tg)"/>
-                    <g transform="translate(3,3) scale(0.0619)">
-                      <path fill="white" d="M391.745,114.138c-0.769-1.032-1.965-1.659-3.251-1.706c-0.367-0.014-35.121-1.422-51.205-12.485c3.222-8.449,9.949-28.502,5.212-37.722c-1.381-2.689-3.611-4.463-6.449-5.131c-5.178-1.218-11.607-1.598-17.826-1.965c-6.818-0.402-14.374-0.848-18.805-2.454l9.026-25.79c0.446-1.274,0.26-2.684-0.5-3.799c-0.761-1.115-2.006-1.802-3.355-1.852c-0.788-0.029-79.312-3.105-123.326-20.853c-0.274-0.111-0.56-0.192-0.851-0.244C180.182,0.096,179.534,0,178.565,0c-3.549,0-15.517,1.498-20.512,20.766c-1.353,5.217-2.554,10.132-3.715,14.885c-3.186,13.042-6.195,25.359-11.495,40.2c-1.017,2.847-1.983,5.368-2.837,7.592c-3.173,8.275-5.088,13.271-2.841,18.025c2.019,4.272,6.726,6.545,14.173,9.027c6.715,2.238,19.115,2.331,34.815,2.447c26.736,0.199,63.316,0.47,81.36,12.918c0.808,0.686,2.686,1.995,5.263,1.995c8.389,0,11.413-12.35,12.779-23.575c4.569,1.318,12.032,4.512,17.67,12.029c0.326,0.436,0.646,0.873,0.965,1.312c6.734,9.229,13.697,18.771,77.842,25.898c0.159,0.018,0.316,0.026,0.473,0.026c1.916,0,3.623-1.295,4.112-3.188l5.836-22.617C392.775,116.495,392.514,115.17,391.745,114.138z"/>
-                    </g>
+                    <rect width="36" height="36" rx="7" fill="#1e7a8c"/>
                   </svg>
                 )}
               </div>
@@ -498,7 +494,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                     style={{ fontSize: '0.95rem', fontWeight: 800, letterSpacing: '0.1em', color: '#0d3b5e' }} />
                 </span>
               ) : (
-                <span className="apex-nav__apex">{c.businessName || 'APEX'}</span>
+                <span className="apex-nav__apex">{c.businessName || tenant.name}</span>
               )}
               {editMode ? (
                 <span className="apex-nav__sub">
@@ -506,7 +502,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                     style={{ fontSize: '0.65rem', fontWeight: 500, color: '#4b7fa3', letterSpacing: '0.04em' }} />
                 </span>
               ) : (
-                <span className="apex-nav__sub">{navSubtitle}</span>
+                navSubtitle ? <span className="apex-nav__sub">{navSubtitle}</span> : null
               )}
             </div>
           </a>
@@ -523,21 +519,33 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           <section className="apex-hero" style={heroStyle}>
             <div className="apex-hero__bg" />
             <div className="apex-hero__content">
-              <p className="apex-hero__eyebrow">Board-Certified Pain Management</p>
+              <p className="apex-hero__eyebrow">
+                {editMode ? (
+                  <EditSpan value={c.eyebrow} onChange={v => set('eyebrow', v)} darkBg />
+                ) : (
+                  c.eyebrow || ''
+                )}
+              </p>
               {editMode ? (
                 <div className="apex-hero__heading">
                   <EditSpan value={c.heroHeadline} onChange={v => set('heroHeadline', v)} darkBg style={{ display: 'block' }} />
                 </div>
               ) : (
-                <h1 className="apex-hero__heading"
-                  dangerouslySetInnerHTML={{ __html: c.heroHeadline || 'Reclaim Your Life<br>From Chronic Pain' }} />
+                c.heroHeadline ? (
+                  <h1 className="apex-hero__heading"
+                    dangerouslySetInnerHTML={{ __html: c.heroHeadline }} />
+                ) : (
+                  <h1 className="apex-hero__heading" style={{ opacity: 0.4, fontStyle: 'italic' }}>Your headline here</h1>
+                )
               )}
               {editMode ? (
                 <p className="apex-hero__sub">
                   <EditSpan value={c.heroSubheadline} onChange={v => set('heroSubheadline', v)} multiline darkBg />
                 </p>
               ) : (
-                <p className="apex-hero__sub">{c.heroSubheadline || 'Personalized, compassionate care combining advanced interventional techniques with holistic treatment plans.'}</p>
+                c.heroSubheadline ? (
+                  <p className="apex-hero__sub">{c.heroSubheadline}</p>
+                ) : null
               )}
               <div className="apex-hero__actions">
                 {editMode ? (
@@ -552,9 +560,11 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                     </div>
                   </div>
                 ) : (
-                  <a className="btn-primary" href={c.heroCtaUrl || '#contact'}>
-                    {c.heroCtaText || 'Book a Consultation'}
-                  </a>
+                  (c.heroCtaText || c.heroCtaUrl) ? (
+                    <a className="btn-primary" href={c.heroCtaUrl || '#contact'}>
+                      {c.heroCtaText || 'Learn More'}
+                    </a>
+                  ) : null
                 )}
                 <a className="btn-ghost" href="#services">Our Services</a>
               </div>
@@ -565,8 +575,8 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
         {/* TRUST BAR */}
         <section className="trust-bar" aria-hidden="true">
           <ul className="trust-bar__list">
-            {['Board-Certified Physicians','Accepting New Patients','Most Insurance Accepted','Same-Week Appointments',
-              'Board-Certified Physicians','Accepting New Patients','Most Insurance Accepted','Same-Week Appointments'].map((t,i) => (
+            {['Accepting New Patients','Most Insurance Accepted','Same-Week Appointments','Expert Specialists',
+              'Accepting New Patients','Most Insurance Accepted','Same-Week Appointments','Expert Specialists'].map((t,i) => (
               <li key={i} className="trust-bar__item">&#10086; {t}</li>
             ))}
           </ul>
@@ -576,37 +586,42 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
         <section className="section" id="services" style={{ background: '#fff' }}>
           <div className="container">
             <div className="section__header">
-              <p className="section__eyebrow">What We Treat</p>
-              <h2 className="section__heading">Comprehensive Pain Management</h2>
-              <p className="section__subtext">We offer a full spectrum of interventional and non-interventional treatments tailored to your condition and lifestyle.</p>
+              <p className="section__eyebrow">What We Offer</p>
+              <h2 className="section__heading">{c.businessName || tenant.name}</h2>
             </div>
-            <ul className="services__grid">
-              {services.map((svc, i) => {
-                const accent = SERVICE_ACCENTS[i % SERVICE_ACCENTS.length]
-                return (
-                  <li key={i} className="service-card" style={{ '--card-bg': accent.bg, '--card-border': accent.border }}>
-                    <div className="service-card__icon" dangerouslySetInnerHTML={{ __html: accent.icon }} />
-                    {editMode ? (
-                      <>
-                        <div className="service-card__title">
-                          <EditSpan value={svc.title} onChange={v => setService(i, 'title', v)} />
-                        </div>
-                        <div className="service-card__desc" style={{ marginTop: '0.5rem' }}>
-                          <EditSpan value={svc.description} onChange={v => setService(i, 'description', v)} multiline />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <h3 className="service-card__title">{svc.title}</h3>
-                        <p className="service-card__desc">{svc.description}</p>
-                      </>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
+            {services.length > 0 ? (
+              <ul className="services__grid">
+                {services.map((svc, i) => {
+                  const accent = SERVICE_ACCENTS[i % SERVICE_ACCENTS.length]
+                  return (
+                    <li key={i} className="service-card" style={{ '--card-bg': accent.bg, '--card-border': accent.border }}>
+                      <div className="service-card__icon" dangerouslySetInnerHTML={{ __html: accent.icon }} />
+                      {editMode ? (
+                        <>
+                          <div className="service-card__title">
+                            <EditSpan value={svc.title} onChange={v => setService(i, 'title', v)} />
+                          </div>
+                          <div className="service-card__desc" style={{ marginTop: '0.5rem' }}>
+                            <EditSpan value={svc.description} onChange={v => setService(i, 'description', v)} multiline />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="service-card__title">{svc.title}</h3>
+                          <p className="service-card__desc">{svc.description}</p>
+                        </>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              editMode ? (
+                <p style={{ textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>No services added yet. Use Settings to add services.</p>
+              ) : null
+            )}
             <div className="services__cta">
-              <a className="btn-primary" href="#contact">Book a Consultation</a>
+              <a className="btn-primary" href="#contact">Get in Touch</a>
             </div>
           </div>
         </section>
@@ -618,14 +633,16 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           <div className="container">
             <div className="teaser__inner">
               <div>
-                <p className="section__eyebrow">About the Clinic</p>
-                <h2 className="section__heading">Compassionate Experts Dedicated to Your Recovery</h2>
+                <p className="section__eyebrow">About Us</p>
+                <h2 className="section__heading">{c.businessName || tenant.name}</h2>
                 {editMode ? (
                   <div className="teaser__body">
                     <EditSpan value={c.aboutText} onChange={v => set('aboutText', v)} multiline />
                   </div>
                 ) : (
-                  <p className="teaser__body">{c.aboutText || 'Founded by fellowship-trained pain specialists, Apex Pain Clinic brings together cutting-edge interventional techniques and whole-patient care. We treat the cause — not just the symptom.'}</p>
+                  c.aboutText ? (
+                    <p className="teaser__body">{c.aboutText}</p>
+                  ) : null
                 )}
                 <a className="btn-primary" href="#contact">Learn About Us</a>
               </div>
@@ -633,6 +650,8 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 {[0,1,2,3].map(i => {
                   const numKey = `stat${i+1}Number`
                   const lblKey = `stat${i+1}Label`
+                  const hasData = (c[numKey] && c[numKey].trim()) || (c[lblKey] && c[lblKey].trim())
+                  if (!editMode && !hasData) return null
                   return (
                     <div key={i} className={`stat${editMode ? ' stat--edit' : ''}`}>
                       {editMode ? (
@@ -648,8 +667,8 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                         </>
                       ) : (
                         <>
-                          <span className="stat__number">{statNumber(c[numKey], DEFAULT_STATS[i].number)}</span>
-                          <span className="stat__label">{statLabel(c[lblKey], DEFAULT_STATS[i].label)}</span>
+                          <span className="stat__number">{c[numKey]}</span>
+                          <span className="stat__label">{c[lblKey]}</span>
                         </>
                       )}
                     </div>
@@ -668,40 +687,41 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
             <div className="section__header">
               <p className="section__eyebrow">Get in Touch</p>
               <h2 className="section__heading">Book Your Appointment</h2>
-              <p className="section__subtext">Ready to start your path to relief? Fill out the form below and our team will reach out within one business day.</p>
             </div>
             <div className="contact__grid">
               <div>
-                <h3 className="contact-info__title">Clinic Information</h3>
+                <h3 className="contact-info__title">Contact Information</h3>
                 <ul className="contact-info__list">
-                  <li>
-                    <span className="contact-info__label">Address</span>
-                    {editMode ? (
-                      <EditSpan value={c.contactAddress} onChange={v => set('contactAddress', v)} multiline />
-                    ) : (
-                      <p dangerouslySetInnerHTML={{ __html: (c.contactAddress || '123 Wellness Blvd, Suite 400<br>Miami, FL 33101').replace(/\n/g,'<br>') }} />
-                    )}
-                  </li>
-                  <li>
-                    <span className="contact-info__label">Phone</span>
-                    {editMode ? (
-                      <EditSpan value={c.contactPhone} onChange={v => set('contactPhone', v)} />
-                    ) : (
-                      <p><a href={`tel:${(c.contactPhone||'').replace(/\D/g,'')}`}>{c.contactPhone || '(305) 555-0100'}</a></p>
-                    )}
-                  </li>
-                  <li>
-                    <span className="contact-info__label">Email</span>
-                    {editMode ? (
-                      <EditSpan value={c.contactEmail} onChange={v => set('contactEmail', v)} />
-                    ) : (
-                      <p><a href={`mailto:${c.contactEmail || 'info@apexpainclinic.com'}`}>{c.contactEmail || 'info@apexpainclinic.com'}</a></p>
-                    )}
-                  </li>
-                  <li>
-                    <span className="contact-info__label">Hours</span>
-                    <p>Monday – Friday: 8 AM – 5 PM<br />Saturday: 9 AM – 1 PM</p>
-                  </li>
+                  {(editMode || c.contactAddress) && (
+                    <li>
+                      <span className="contact-info__label">Address</span>
+                      {editMode ? (
+                        <EditSpan value={c.contactAddress} onChange={v => set('contactAddress', v)} multiline />
+                      ) : (
+                        <p dangerouslySetInnerHTML={{ __html: c.contactAddress.replace(/\n/g,'<br>') }} />
+                      )}
+                    </li>
+                  )}
+                  {(editMode || c.contactPhone) && (
+                    <li>
+                      <span className="contact-info__label">Phone</span>
+                      {editMode ? (
+                        <EditSpan value={c.contactPhone} onChange={v => set('contactPhone', v)} />
+                      ) : (
+                        <p><a href={`tel:${c.contactPhone.replace(/\D/g,'')}`}>{c.contactPhone}</a></p>
+                      )}
+                    </li>
+                  )}
+                  {(editMode || c.contactEmail) && (
+                    <li>
+                      <span className="contact-info__label">Email</span>
+                      {editMode ? (
+                        <EditSpan value={c.contactEmail} onChange={v => set('contactEmail', v)} />
+                      ) : (
+                        <p><a href={`mailto:${c.contactEmail}`}>{c.contactEmail}</a></p>
+                      )}
+                    </li>
+                  )}
                 </ul>
               </div>
               <div className="contact-form-wrap">
@@ -718,8 +738,8 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                   <select disabled><option>Select a service…</option></select>
                 </div>
                 <div className="form-group">
-                  <label>Tell Us About Your Pain</label>
-                  <textarea placeholder="Briefly describe your pain…" disabled />
+                  <label>Message</label>
+                  <textarea placeholder="How can we help?" disabled />
                 </div>
                 <button className="form-submit" disabled>Send Request</button>
                 <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.75rem', textAlign: 'center' }}>
@@ -735,8 +755,8 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           <div className="container">
             <div className="footer__main">
               <div>
-                <p className="footer__brand-name">{c.businessName || 'Apex Pain Clinic'}</p>
-                <p className="footer__tagline">Compassionate, expert pain care — helping patients reclaim their lives.</p>
+                <p className="footer__brand-name">{c.businessName || tenant.name}</p>
+                {c.aboutText ? <p className="footer__tagline">{c.aboutText.slice(0, 120)}{c.aboutText.length > 120 ? '…' : ''}</p> : null}
               </div>
               <div>
                 <p className="footer__col-heading">Services</p>
@@ -748,24 +768,22 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 <p className="footer__col-heading">Company</p>
                 <ul className="footer__links">
                   <li><a href="#about">About Us</a></li>
-                  <li><a href="#contact">Book Appointment</a></li>
                   <li><a href="#contact">Contact</a></li>
                 </ul>
               </div>
               <div>
                 <p className="footer__col-heading">Contact</p>
                 <ul className="footer__links">
-                  <li><a href={`tel:${(c.contactPhone||'').replace(/\D/g,'')}`}>{c.contactPhone || '(305) 555-0100'}</a></li>
-                  <li><a href={`mailto:${c.contactEmail||'info@apexpainclinic.com'}`}>{c.contactEmail || 'info@apexpainclinic.com'}</a></li>
+                  {c.contactPhone && <li><a href={`tel:${c.contactPhone.replace(/\D/g,'')}`}>{c.contactPhone}</a></li>}
+                  {c.contactEmail && <li><a href={`mailto:${c.contactEmail}`}>{c.contactEmail}</a></li>}
                 </ul>
               </div>
             </div>
             <div className="footer__bottom">
-              <p>&#169; 2026 {c.businessName || 'Apex Pain Clinic'}. All rights reserved.</p>
+              <p>&#169; 2026 {c.businessName || tenant.name}. All rights reserved.</p>
               <nav className="footer__legal">
                 <a href="#">Privacy Policy</a>
                 <a href="#">Terms of Use</a>
-                <a href="#">Accessibility</a>
               </nav>
             </div>
           </div>
@@ -792,10 +810,11 @@ export async function getServerSideProps(context) {
     const c = raw ? {
       businessName:    raw.businessName    || '',
       navSubtitle:     raw.navSubtitle     || '',
+      eyebrow:         raw.eyebrow         || '',
       heroHeadline:    raw.heroHeadline    || '',
       heroSubheadline: raw.heroSubheadline || '',
-      heroCtaText:     raw.heroCtaText     || 'Book a Consultation',
-      heroCtaUrl:      raw.heroCtaUrl      || '#contact',
+      heroCtaText:     raw.heroCtaText     || '',
+      heroCtaUrl:      raw.heroCtaUrl      || '',
       aboutText:       raw.aboutText       || '',
       stat1Number: raw.stat1Number || '',
       stat1Label:  raw.stat1Label  || '',
