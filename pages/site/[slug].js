@@ -68,7 +68,7 @@ function EditSpan({ value, onChange, multiline = false, style, darkBg = false })
             padding: '4px 12px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>&#10003; Apply</button>
         <button onMouseDown={e => { e.preventDefault(); cancel() }}
           style={{ background: 'rgba(0,0,0,0.1)', color: darkBg ? '#fff' : '#333', border: 'none',
-            borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px' }}>&#10005;</button>
+            borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px' }}>&#10005;</button>
       </span>
     </span>
   )
@@ -264,14 +264,11 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
       }
     : {}
 
-  // Nav subtitle: use stored value or fall back to 'Pain Clinic'
   const navSubtitle = c.navSubtitle || 'Pain Clinic'
 
-  // Stat helpers
   const statNumber = (n, def) => (n && n.trim()) ? n : def
   const statLabel  = (l, def) => (l && l.trim()) ? l : def
 
-  // Shared button styles for toolbar
   const tbBtn = (variant = 'ghost') => ({
     background: variant === 'primary' ? '#20b2aa'
       : variant === 'settings' ? 'rgba(255,255,255,0.08)'
@@ -495,7 +492,6 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
               </div>
             </EditImage>
             <div className="apex-nav__wordmark">
-              {/* FIX 5: businessName drives the top wordmark; navSubtitle drives the sub-label */}
               {editMode ? (
                 <span className="apex-nav__apex">
                   <EditSpan value={c.businessName} onChange={v => set('businessName', v)}
@@ -546,7 +542,6 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
               <div className="apex-hero__actions">
                 {editMode ? (
                   <div>
-                    {/* FIX 3: CTA button text + URL both editable */}
                     <EditSpan value={c.heroCtaText} onChange={v => set('heroCtaText', v)} darkBg
                       style={{ background: '#20b2aa', color: '#fff', borderRadius: '50px',
                         padding: '0.85rem 2rem', fontSize: '1rem', fontWeight: 600, display: 'inline-block' }} />
@@ -634,7 +629,6 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 )}
                 <a className="btn-primary" href="#contact">Learn About Us</a>
               </div>
-              {/* FIX 4: About stats — all 4 tiles are now fully editable */}
               <div className="teaser__stats">
                 {[0,1,2,3].map(i => {
                   const numKey = `stat${i+1}Number`
@@ -792,7 +786,8 @@ export async function getServerSideProps(context) {
     const tenant = await Tenant.findOne({ slug }).lean()
     if (!tenant) return { props: { notFound: true, tenant: null, c: null, canEdit: false, slug } }
 
-    const raw = await SiteContent.findOne({ tenantId: tenant._id }).lean()
+    // Double-lock: match on BOTH tenantId AND siteSlug to prevent cross-tenant bleed
+    const raw = await SiteContent.findOne({ tenantId: tenant._id, siteSlug: slug }).lean()
 
     const c = raw ? {
       businessName:    raw.businessName    || '',
@@ -802,7 +797,6 @@ export async function getServerSideProps(context) {
       heroCtaText:     raw.heroCtaText     || 'Book a Consultation',
       heroCtaUrl:      raw.heroCtaUrl      || '#contact',
       aboutText:       raw.aboutText       || '',
-      // About stats
       stat1Number: raw.stat1Number || '',
       stat1Label:  raw.stat1Label  || '',
       stat2Number: raw.stat2Number || '',
