@@ -65,10 +65,10 @@ function EditSpan({ value, onChange, multiline = false, style, darkBg = false })
       <span style={{ display: 'flex', gap: '6px', marginTop: '5px' }}>
         <button onMouseDown={e => { e.preventDefault(); confirm() }}
           style={{ background: '#20b2aa', color: '#fff', border: 'none', borderRadius: '4px',
-            padding: '4px 12px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>✓ Apply</button>
+            padding: '4px 12px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>&#10003; Apply</button>
         <button onMouseDown={e => { e.preventDefault(); cancel() }}
           style={{ background: 'rgba(0,0,0,0.1)', color: darkBg ? '#fff' : '#333', border: 'none',
-            borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px' }}>✕</button>
+            borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px' }}>&#10005;</button>
       </span>
     </span>
   )
@@ -128,7 +128,7 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
       {children}
       {!open && (
         <button onClick={() => { setDraft(value || ''); setOpen(true) }} style={triggerStyle} title={`Change ${label}`}>
-          {variant === 'corner' ? '🖼' : <>🖼️&nbsp;{label}</>}
+          {variant === 'corner' ? '&#128444;' : <>{label}</>}
         </button>
       )}
       {open && (
@@ -162,7 +162,7 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
             <button onMouseDown={e => { e.preventDefault(); confirm() }}
               style={{ flex: 1, background: '#20b2aa', color: '#fff', border: 'none',
                 borderRadius: '6px', padding: '8px', cursor: 'pointer',
-                fontWeight: 700, fontSize: '13px', fontFamily: 'sans-serif' }}>✓ Apply</button>
+                fontWeight: 700, fontSize: '13px', fontFamily: 'sans-serif' }}>&#10003; Apply</button>
             {value && (
               <button onMouseDown={e => { e.preventDefault(); onChange(''); setOpen(false) }}
                 style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5',
@@ -172,7 +172,7 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
             <button onMouseDown={e => { e.preventDefault(); cancel() }}
               style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none',
                 borderRadius: '6px', padding: '8px 12px', cursor: 'pointer',
-                fontSize: '12px', fontFamily: 'sans-serif' }}>✕</button>
+                fontSize: '12px', fontFamily: 'sans-serif' }}>&#10005;</button>
           </div>
         </div>
       )}
@@ -182,12 +182,20 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
 
 // ─── Service accent colours ───────────────────────────────────────────────────
 const SERVICE_ACCENTS = [
-  { bg: '#e8f4fd', border: '#1a5c8a', icon: '🦴' },
-  { bg: '#e8f8f7', border: '#20b2aa', icon: '⚡' },
-  { bg: '#eef6ff', border: '#4b7fa3', icon: '💉' },
-  { bg: '#f0faf9', border: '#1a9a92', icon: '🧬' },
-  { bg: '#fef9ee', border: '#d97706', icon: '🩸' },
-  { bg: '#f5f3ff', border: '#7c3aed', icon: '💊' },
+  { bg: '#e8f4fd', border: '#1a5c8a', icon: '&#129460;' },
+  { bg: '#e8f8f7', border: '#20b2aa', icon: '&#9889;' },
+  { bg: '#eef6ff', border: '#4b7fa3', icon: '&#128137;' },
+  { bg: '#f0faf9', border: '#1a9a92', icon: '&#129516;' },
+  { bg: '#fef9ee', border: '#d97706', icon: '&#129754;' },
+  { bg: '#f5f3ff', border: '#7c3aed', icon: '&#128138;' },
+]
+
+// ─── Default stat fallbacks ───────────────────────────────────────────────────
+const DEFAULT_STATS = [
+  { number: '1,200+', label: 'Patients Treated Annually' },
+  { number: '15+',    label: 'Years of Combined Experience' },
+  { number: '94%',    label: 'Patient Satisfaction Rate' },
+  { number: '6',      label: 'Specialized Treatment Types' },
 ]
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -219,7 +227,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
         body: JSON.stringify(c),
       })
       if (res.ok) {
-        setSaveMsg('✓ Saved!')
+        setSaveMsg('Saved!')
         setEditMode(false)
         setTimeout(() => setSaveMsg(''), 3000)
       } else {
@@ -255,6 +263,13 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
         backgroundPosition: 'center',
       }
     : {}
+
+  // Nav subtitle: use stored value or fall back to 'Pain Clinic'
+  const navSubtitle = c.navSubtitle || 'Pain Clinic'
+
+  // Stat helpers
+  const statNumber = (n, def) => (n && n.trim()) ? n : def
+  const statLabel  = (l, def) => (l && l.trim()) ? l : def
 
   // Shared button styles for toolbar
   const tbBtn = (variant = 'ghost') => ({
@@ -340,9 +355,13 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
             font-size: clamp(1rem,2vw,1.2rem); line-height: 1.7; color: rgba(255,255,255,0.82);
             max-width: 52ch; margin-bottom: 2.25rem;
           }
-          .apex-hero__actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+          .apex-hero__actions { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start; }
           .btn-primary { background: #20b2aa; color: #fff; border-radius: 50px; padding: 0.85rem 2rem; font-size: 1rem; font-weight: 600; border: none; cursor: pointer; display: inline-block; }
           .btn-ghost { background: transparent; color: #fff; border-radius: 50px; padding: 0.85rem 2rem; font-size: 1rem; font-weight: 600; border: 2px solid rgba(255,255,255,0.45); cursor: pointer; display: inline-block; }
+
+          /* CTA URL edit hint */
+          .cta-url-row { margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+          .cta-url-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #7ee8e4; white-space: nowrap; }
 
           /* TRUST BAR */
           .trust-bar { background: #0d2d4a; padding: 1rem 0; overflow: hidden; }
@@ -378,6 +397,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           .stat { background: #f8fafc; border-radius: 12px; padding: 1.5rem; text-align: center; }
           .stat__number { display: block; font-size: clamp(1.75rem,4vw,2.5rem); font-weight: 800; color: #1a5c8a; }
           .stat__label { font-size: 0.8rem; color: #6b7280; font-weight: 500; margin-top: 0.25rem; display: block; }
+          .stat--edit { position: relative; outline: 2px dashed rgba(32,178,170,0.5); outline-offset: 2px; border-radius: 12px; }
 
           /* CONTACT */
           .contact__grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 3rem; align-items: start; }
@@ -418,7 +438,6 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '10px 24px', boxShadow: '0 2px 16px rgba(0,0,0,0.4)',
         }}>
-          {/* Left: brand + status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontWeight: 700, fontSize: '13px' }}>CMS</span>
             <span style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'sans-serif', fontSize: '12px' }}>
@@ -427,31 +446,26 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 : 'Previewing ' + tenant.name}
             </span>
           </div>
-
-          {/* Right: actions */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {saveMsg && (
               <span style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 600 }}>
                 {saveMsg}
               </span>
             )}
-
-            {/* ⚙ Settings — always visible */}
             <a href="/client" style={tbBtn('settings')} title="Advanced settings, SEO & bulk editing">
-              ⚙ Settings
+              Settings
             </a>
-
             {editMode ? (
               <>
                 <button onClick={handleDiscard} style={tbBtn('ghost')}>Discard</button>
                 <button onClick={handleSaveAndExit} disabled={saving}
                   style={{ ...tbBtn('primary'), opacity: saving ? 0.6 : 1 }}>
-                  {saving ? 'Saving…' : 'Save & Exit'}
+                  {saving ? 'Saving...' : 'Save & Exit'}
                 </button>
               </>
             ) : (
               <>
-                <button onClick={() => setEditMode(true)} style={tbBtn('primary')}>✏ Edit Site</button>
+                <button onClick={() => setEditMode(true)} style={tbBtn('primary')}>Edit Site</button>
                 <button onClick={() => signOut({ callbackUrl: '/login' })} style={tbBtn('ghost')}>Sign Out</button>
               </>
             )}
@@ -481,8 +495,23 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
               </div>
             </EditImage>
             <div className="apex-nav__wordmark">
-              <span className="apex-nav__apex">APEX</span>
-              <span className="apex-nav__sub">Pain Clinic</span>
+              {/* FIX 5: businessName drives the top wordmark; navSubtitle drives the sub-label */}
+              {editMode ? (
+                <span className="apex-nav__apex">
+                  <EditSpan value={c.businessName} onChange={v => set('businessName', v)}
+                    style={{ fontSize: '0.95rem', fontWeight: 800, letterSpacing: '0.1em', color: '#0d3b5e' }} />
+                </span>
+              ) : (
+                <span className="apex-nav__apex">{c.businessName || 'APEX'}</span>
+              )}
+              {editMode ? (
+                <span className="apex-nav__sub">
+                  <EditSpan value={c.navSubtitle} onChange={v => set('navSubtitle', v)}
+                    style={{ fontSize: '0.65rem', fontWeight: 500, color: '#4b7fa3', letterSpacing: '0.04em' }} />
+                </span>
+              ) : (
+                <span className="apex-nav__sub">{navSubtitle}</span>
+              )}
             </div>
           </a>
           <ul className="apex-nav__links">
@@ -516,12 +545,21 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
               )}
               <div className="apex-hero__actions">
                 {editMode ? (
-                  <span style={{ display: 'inline-block' }}>
+                  <div>
+                    {/* FIX 3: CTA button text + URL both editable */}
                     <EditSpan value={c.heroCtaText} onChange={v => set('heroCtaText', v)} darkBg
-                      style={{ background: '#20b2aa', color: '#fff', borderRadius: '50px', padding: '0.85rem 2rem', fontSize: '1rem', fontWeight: 600 }} />
-                  </span>
+                      style={{ background: '#20b2aa', color: '#fff', borderRadius: '50px',
+                        padding: '0.85rem 2rem', fontSize: '1rem', fontWeight: 600, display: 'inline-block' }} />
+                    <div className="cta-url-row">
+                      <span className="cta-url-label">Link:</span>
+                      <EditSpan value={c.heroCtaUrl} onChange={v => set('heroCtaUrl', v)} darkBg
+                        style={{ fontSize: '11px', color: '#7ee8e4' }} />
+                    </div>
+                  </div>
                 ) : (
-                  <a className="btn-primary" href="#contact">{c.heroCtaText || 'Book a Consultation'}</a>
+                  <a className="btn-primary" href={c.heroCtaUrl || '#contact'}>
+                    {c.heroCtaText || 'Book a Consultation'}
+                  </a>
                 )}
                 <a className="btn-ghost" href="#services">Our Services</a>
               </div>
@@ -534,7 +572,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           <ul className="trust-bar__list">
             {['Board-Certified Physicians','Accepting New Patients','Most Insurance Accepted','Same-Week Appointments',
               'Board-Certified Physicians','Accepting New Patients','Most Insurance Accepted','Same-Week Appointments'].map((t,i) => (
-              <li key={i} className="trust-bar__item">✦ {t}</li>
+              <li key={i} className="trust-bar__item">&#10086; {t}</li>
             ))}
           </ul>
         </section>
@@ -552,7 +590,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 const accent = SERVICE_ACCENTS[i % SERVICE_ACCENTS.length]
                 return (
                   <li key={i} className="service-card" style={{ '--card-bg': accent.bg, '--card-border': accent.border }}>
-                    <div className="service-card__icon">{accent.icon}</div>
+                    <div className="service-card__icon" dangerouslySetInnerHTML={{ __html: accent.icon }} />
                     {editMode ? (
                       <>
                         <div className="service-card__title">
@@ -596,11 +634,33 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 )}
                 <a className="btn-primary" href="#contact">Learn About Us</a>
               </div>
+              {/* FIX 4: About stats — all 4 tiles are now fully editable */}
               <div className="teaser__stats">
-                <div className="stat"><span className="stat__number">1,200+</span><span className="stat__label">Patients Treated Annually</span></div>
-                <div className="stat"><span className="stat__number">15+</span><span className="stat__label">Years of Combined Experience</span></div>
-                <div className="stat"><span className="stat__number">94%</span><span className="stat__label">Patient Satisfaction Rate</span></div>
-                <div className="stat"><span className="stat__number">6</span><span className="stat__label">Specialized Treatment Types</span></div>
+                {[0,1,2,3].map(i => {
+                  const numKey = `stat${i+1}Number`
+                  const lblKey = `stat${i+1}Label`
+                  return (
+                    <div key={i} className={`stat${editMode ? ' stat--edit' : ''}`}>
+                      {editMode ? (
+                        <>
+                          <span className="stat__number">
+                            <EditSpan value={c[numKey]} onChange={v => set(numKey, v)}
+                              style={{ fontSize: 'clamp(1.75rem,4vw,2.5rem)', fontWeight: 800, color: '#1a5c8a' }} />
+                          </span>
+                          <span className="stat__label">
+                            <EditSpan value={c[lblKey]} onChange={v => set(lblKey, v)}
+                              style={{ fontSize: '0.8rem', color: '#6b7280' }} />
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="stat__number">{statNumber(c[numKey], DEFAULT_STATS[i].number)}</span>
+                          <span className="stat__label">{statLabel(c[lblKey], DEFAULT_STATS[i].label)}</span>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -707,7 +767,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
               </div>
             </div>
             <div className="footer__bottom">
-              <p>© 2026 {c.businessName || 'Apex Pain Clinic'}. All rights reserved.</p>
+              <p>&#169; 2026 {c.businessName || 'Apex Pain Clinic'}. All rights reserved.</p>
               <nav className="footer__legal">
                 <a href="#">Privacy Policy</a>
                 <a href="#">Terms of Use</a>
@@ -736,11 +796,21 @@ export async function getServerSideProps(context) {
 
     const c = raw ? {
       businessName:    raw.businessName    || '',
+      navSubtitle:     raw.navSubtitle     || '',
       heroHeadline:    raw.heroHeadline    || '',
       heroSubheadline: raw.heroSubheadline || '',
       heroCtaText:     raw.heroCtaText     || 'Book a Consultation',
       heroCtaUrl:      raw.heroCtaUrl      || '#contact',
       aboutText:       raw.aboutText       || '',
+      // About stats
+      stat1Number: raw.stat1Number || '',
+      stat1Label:  raw.stat1Label  || '',
+      stat2Number: raw.stat2Number || '',
+      stat2Label:  raw.stat2Label  || '',
+      stat3Number: raw.stat3Number || '',
+      stat3Label:  raw.stat3Label  || '',
+      stat4Number: raw.stat4Number || '',
+      stat4Label:  raw.stat4Label  || '',
       services:       (raw.services || []).map(s => ({ title: s.title || '', description: s.description || '' })),
       contactPhone:    raw.contactPhone    || '',
       contactEmail:    raw.contactEmail    || '',
