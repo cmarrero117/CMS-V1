@@ -3,6 +3,7 @@ import { authOptions } from '../../lib/authOptions'
 import dbConnect from '../../lib/db'
 import User from '../../lib/models/User'
 import Tenant from '../../lib/models/Tenant'
+import SiteContent from '../../lib/models/SiteContent'
 import bcrypt from 'bcryptjs'
 
 export default async function handler(req, res) {
@@ -16,7 +17,6 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const clients = await User.find({ role: 'client' }).select('-password').lean()
-    // Attach siteSlug by joining Tenant
     const tenantIds = clients.filter(c => c.tenantId).map(c => c.tenantId)
     const tenants = tenantIds.length
       ? await Tenant.find({ _id: { $in: tenantIds } }).lean()
@@ -51,8 +51,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'That site slug is already taken' })
     }
 
-    // Create tenant first
+    // Create tenant
     const tenant = await Tenant.create({ name, slug: siteSlug, email })
+
+    // Seed a blank SiteContent document so the site renders empty
+    // rather than falling through to hardcoded Apex defaults
+    await SiteContent.create({
+      tenantId: tenant._id,
+      siteSlug,
+      businessName: name,
+    })
 
     const hashed = await bcrypt.hash(password, 12)
     const client = await User.create({
