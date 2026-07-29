@@ -2,27 +2,14 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../lib/authOptions'
 import { useRouter } from 'next/router'
 
-// ─── Styles (mirrored from client/index.js) ───────────────────────────────────
-const s = {
-  page:        { fontFamily: 'system-ui, sans-serif', padding: '2rem', maxWidth: '780px', margin: '0 auto', color: '#1a1a1a' },
-  header:      { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' },
-  name:        { margin: 0, fontSize: '1.6rem', fontWeight: 700 },
-  email:       { margin: '0.2rem 0 0', color: '#666', fontSize: '0.9rem' },
-  logoutBtn:   { padding: '0.4rem 1rem', background: '#eee', border: '1px solid #ccc', borderRadius: '6px', fontSize: '0.9rem', cursor: 'not-allowed', color: '#999' },
-  section:     { marginBottom: '2.5rem' },
-  sectionHead: { fontSize: '1.1rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.5rem', marginBottom: '1.25rem' },
-  input:       { width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.95rem', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box', background: '#f9f9f9', color: '#555' },
-  textarea:    { width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.95rem', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box', resize: 'vertical', background: '#f9f9f9', color: '#555' },
-  serviceBox:  { background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem', marginBottom: '0.75rem' },
-  saveBar:     { display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem' },
-  saveBtn:     { padding: '0.55rem 1.5rem', background: '#94a3b8', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'not-allowed', fontWeight: 600, fontSize: '0.95rem' },
-  addBtn:      { padding: '0.4rem 1rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem', fontWeight: 500, cursor: 'not-allowed', color: '#9ca3af' },
-  banner:      { background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '6px', padding: '0.75rem 1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  bannerText:  { color: '#92400e', fontWeight: 600 },
-  exitBtn:     { background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.35rem 0.9rem', cursor: 'pointer', fontWeight: 600, marginLeft: '1rem', whiteSpace: 'nowrap' },
+const inp = {
+  width: '100%', padding: '10px 12px', fontSize: '0.9rem',
+  borderRadius: '8px', border: '1px solid #e5e7eb',
+  boxSizing: 'border-box', background: '#f3f4f6', color: '#6b7280',
+  cursor: 'not-allowed', outline: 'none',
 }
+const ta = { ...inp, resize: 'vertical' }
 
-// ─── Placeholder content shown in preview ────────────────────────────────────
 const DEMO = {
   businessName:    'Acme Co.',
   heroHeadline:    'We build great things.',
@@ -45,120 +32,177 @@ const DEMO = {
   ogImageUrl:     '',
 }
 
-// ─── Read-only Field helper ───────────────────────────────────────────────────
 function Field({ label, hint, children }) {
   return (
     <div style={{ marginBottom: '1.25rem' }}>
-      <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem', color: '#374151' }}>{label}</label>
-      {hint && <span style={{ display: 'block', fontSize: '0.78rem', color: '#9ca3af', marginBottom: '0.4rem' }}>{hint}</span>}
+      <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.2rem', color: '#374151' }}>{label}</label>
+      {hint && <span style={{ display: 'block', fontSize: '0.76rem', color: '#9ca3af', marginBottom: '0.4rem' }}>{hint}</span>}
       {children}
     </div>
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+function SectionCard({ title, subtitle, children }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.75rem', marginBottom: '1.25rem' }}>
+      <div style={{ marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f3f4f6' }}>
+        <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#111827' }}>{title}</h2>
+        {subtitle && <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#9ca3af' }}>{subtitle}</p>}
+      </div>
+      {children}
+    </div>
+  )
+}
+
 export default function ClientDashboardPreview() {
   const router = useRouter()
   const f = DEMO
+  const twoCol = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }
+  const itemBox = { background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '1rem 1.1rem', marginBottom: '0.75rem' }
 
   return (
-    <div style={s.page}>
+    <div style={{ minHeight: '100vh', background: '#f8f8fb', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
 
-      {/* Preview Banner */}
-      <div style={s.banner}>
-        <span style={s.bannerText}>
-          ⚠️ Preview Mode — This is how the client dashboard looks. Changes here are not saved.
-        </span>
-        <button style={s.exitBtn} onClick={() => router.push('/admin')}>
-          ← Exit Preview
+      {/* Top Nav */}
+      <nav style={{
+        background: '#fff', borderBottom: '1px solid #e5e7eb',
+        padding: '0 2rem', height: '60px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        position: 'sticky', top: 0, zIndex: 50,
+      }}>
+        <span style={{ fontWeight: 700, fontSize: '1.2rem', color: '#4f46e5', letterSpacing: '-0.5px' }}>Canvō</span>
+        <button
+          disabled
+          style={{ background: 'transparent', color: '#9ca3af', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 14px', fontSize: '0.875rem', fontWeight: 500, cursor: 'not-allowed' }}
+        >
+          Log Out
         </button>
-      </div>
+      </nav>
 
-      {/* Header */}
-      <div style={s.header}>
-        <div>
-          <h1 style={s.name}>Welcome, {f.businessName || 'Client Name'}</h1>
-          <p style={s.email}>client@example.com</p>
-        </div>
-        <button disabled style={s.logoutBtn}>Log Out</button>
-      </div>
+      <main style={{ maxWidth: '820px', margin: '0 auto', padding: '2rem 2rem 6rem' }}>
 
-      {/* ── CONTENT ──────────────────────────────────────────────── */}
-      <div style={s.section}>
-        <h2 style={s.sectionHead}>Content</h2>
-
-        <Field label="Business Name" hint="Your official business name — appears in the nav, footer, and page title.">
-          <input readOnly style={s.input} value={f.businessName} />
-        </Field>
-
-        <Field label="Hero Headline" hint="The large heading visitors see first. Keep it short and clear.">
-          <input readOnly style={s.input} value={f.heroHeadline} />
-        </Field>
-
-        <Field label="Hero Subheadline" hint="One sentence below the headline. Optional but recommended.">
-          <input readOnly style={s.input} value={f.heroSubheadline} />
-        </Field>
-
-        <Field label="About Text" hint="A short paragraph describing your practice, business, or background.">
-          <textarea readOnly style={s.textarea} rows={4} value={f.aboutText} />
-        </Field>
-
-        {/* Services */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem', color: '#374151' }}>
-            Services <span style={{ fontWeight: 400, color: '#9ca3af' }}>(up to 6)</span>
-          </label>
-          <span style={{ display: 'block', fontSize: '0.78rem', color: '#9ca3af', marginBottom: '0.4rem' }}>
-            List the main services you offer. Each one gets a title and a short description.
+        {/* Admin Preview Banner */}
+        <div style={{
+          background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '10px',
+          padding: '0.75rem 1.1rem', marginBottom: '1.75rem',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem',
+        }}>
+          <span style={{ color: '#92400e', fontWeight: 600, fontSize: '0.875rem' }}>
+            ⚠️ Preview Mode — This is how the client dashboard looks. Changes here are not saved.
           </span>
-          {f.services.map((svc, i) => (
-            <div key={i} style={s.serviceBox}>
-              <input readOnly style={{ ...s.input, marginBottom: '0.5rem' }} value={svc.title} />
-              <textarea readOnly style={s.textarea} rows={2} value={svc.description} />
-            </div>
-          ))}
-          <button disabled style={s.addBtn}>+ Add Service</button>
+          <button
+            onClick={() => router.push('/admin')}
+            style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+          >
+            ← Exit Preview
+          </button>
         </div>
 
-        <Field label="Contact Phone" hint=""><input readOnly style={s.input} value={f.contactPhone} /></Field>
-        <Field label="Contact Email" hint=""><input readOnly style={s.input} value={f.contactEmail} /></Field>
-        <Field label="Contact Address" hint=""><input readOnly style={s.input} value={f.contactAddress} /></Field>
-        <Field label="Logo URL" hint="Paste the URL of your logo image. Leave blank to use the default.">
-          <input readOnly style={s.input} value={f.logoUrl || ''} placeholder="https://..." />
-        </Field>
-        <Field label="Hero Image URL" hint="Background or banner photo for the hero section. Leave blank to use the default.">
-          <input readOnly style={s.input} value={f.heroImageUrl || ''} placeholder="https://..." />
-        </Field>
-      </div>
+        {/* Page Header */}
+        <div style={{ marginBottom: '1.75rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 700, color: '#111827' }}>Welcome, {f.businessName || 'Client Name'}</h1>
+          <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem', color: '#6b7280' }}>Edit your site content below. Changes go live as soon as you save.</p>
+        </div>
 
-      {/* ── SEO ──────────────────────────────────────────────────── */}
-      <div style={s.section}>
-        <h2 style={s.sectionHead}>SEO &amp; Social</h2>
+        {/* CONTENT */}
+        <SectionCard title="Content" subtitle="Core text that appears throughout your public website.">
+          <Field label="Business Name" hint="Your official business name — appears in the nav, footer, and page title.">
+            <input readOnly style={inp} value={f.businessName} />
+          </Field>
+          <Field label="Hero Headline" hint="The large heading visitors see first. Keep it short and clear.">
+            <input readOnly style={inp} value={f.heroHeadline} />
+          </Field>
+          <Field label="Hero Subheadline" hint="One sentence below the headline. Optional but recommended.">
+            <input readOnly style={inp} value={f.heroSubheadline} />
+          </Field>
+          <div style={twoCol}>
+            <Field label="Hero Button Text" hint="Text on the call-to-action button.">
+              <input readOnly style={inp} value="Book an Appointment" />
+            </Field>
+            <Field label="Hero Button Link" hint="URL the button points to.">
+              <input readOnly style={inp} value="/contact" />
+            </Field>
+          </div>
+          <Field label="About Text" hint="A short paragraph describing your practice, business, or background.">
+            <textarea readOnly style={ta} rows={4} value={f.aboutText} />
+          </Field>
 
-        <Field label="Page Title" hint="Shows in the browser tab and Google search results. Ideal length: 50–60 characters.">
-          <input readOnly style={s.input} value={f.seoTitle} />
-        </Field>
-        <Field label="Meta Description" hint="The snippet shown under your link in Google. Ideal length: 150–160 characters.">
-          <textarea readOnly style={s.textarea} rows={3} value={f.seoDescription} />
-        </Field>
-        <Field label="Keywords" hint="Comma-separated words related to your business.">
-          <input readOnly style={s.input} value={f.seoKeywords} />
-        </Field>
-        <Field label="Social Share Title" hint="Title shown when someone shares your site on Facebook, WhatsApp, etc.">
-          <input readOnly style={s.input} value={f.ogTitle} />
-        </Field>
-        <Field label="Social Share Description" hint="Description shown in social share previews.">
-          <textarea readOnly style={s.textarea} rows={2} value={f.ogDescription} />
-        </Field>
-        <Field label="Social Share Image URL" hint="Image shown when your site is shared on social media. Recommended size: 1200 × 630px.">
-          <input readOnly style={s.input} value={f.ogImageUrl || ''} placeholder="https://..." />
-        </Field>
-      </div>
+          {/* Services */}
+          <div style={{ marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', color: '#374151', marginBottom: '0.2rem' }}>Services <span style={{ fontWeight: 400, color: '#9ca3af' }}>(up to 6)</span></label>
+            <span style={{ display: 'block', fontSize: '0.76rem', color: '#9ca3af', marginBottom: '0.75rem' }}>List the main services you offer. Each one gets a title and a short description.</span>
+            {f.services.map((svc, i) => (
+              <div key={i} style={itemBox}>
+                <input readOnly style={{ ...inp, marginBottom: '0.5rem', width: '100%' }} value={svc.title} />
+                <textarea readOnly style={ta} rows={2} value={svc.description} />
+              </div>
+            ))}
+            <button disabled style={{ padding: '8px 16px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 500, color: '#9ca3af', cursor: 'not-allowed' }}>+ Add Service</button>
+          </div>
+        </SectionCard>
 
-      {/* ── SAVE BAR (disabled) ───────────────────────────────────── */}
-      <div style={s.saveBar}>
-        <button disabled style={s.saveBtn}>Save All Changes</button>
-        <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Preview only — nothing is saved here.</span>
+        {/* CONTACT */}
+        <SectionCard title="Contact" subtitle="Your publicly displayed contact information.">
+          <Field label="Phone" hint="">
+            <input readOnly style={inp} value={f.contactPhone} />
+          </Field>
+          <Field label="Email" hint="">
+            <input readOnly style={inp} value={f.contactEmail} />
+          </Field>
+          <Field label="Address" hint="">
+            <input readOnly style={inp} value={f.contactAddress} />
+          </Field>
+        </SectionCard>
+
+        {/* MEDIA */}
+        <SectionCard title="Media" subtitle="Image URLs for your logo and hero background.">
+          <Field label="Logo URL" hint="Paste the URL of your logo image. Leave blank to use the default.">
+            <input readOnly style={inp} value={f.logoUrl || ''} placeholder="https://..." />
+          </Field>
+          <Field label="Hero Image URL" hint="Background or banner photo for the hero section.">
+            <input readOnly style={inp} value={f.heroImageUrl || ''} placeholder="https://..." />
+          </Field>
+        </SectionCard>
+
+        {/* SEO */}
+        <SectionCard title="SEO & Social" subtitle="Controls how your site appears in Google and social media previews.">
+          <Field label="Page Title" hint="Shows in the browser tab and Google results. Ideal: 50–60 characters.">
+            <input readOnly style={inp} value={f.seoTitle} />
+          </Field>
+          <Field label="Meta Description" hint="Shown under your link in Google. Ideal: 150–160 characters.">
+            <textarea readOnly style={ta} rows={3} value={f.seoDescription} />
+          </Field>
+          <Field label="Keywords" hint="Comma-separated words related to your business.">
+            <input readOnly style={inp} value={f.seoKeywords} />
+          </Field>
+          <Field label="Social Share Title" hint="Shown when your site is shared on Facebook, WhatsApp, etc.">
+            <input readOnly style={inp} value={f.ogTitle} />
+          </Field>
+          <Field label="Social Share Description" hint="Description in social share previews.">
+            <textarea readOnly style={ta} rows={2} value={f.ogDescription} />
+          </Field>
+          <Field label="Social Share Image URL" hint="Recommended size: 1200 × 630px.">
+            <input readOnly style={inp} value={f.ogImageUrl || ''} placeholder="https://..." />
+          </Field>
+        </SectionCard>
+
+      </main>
+
+      {/* Sticky Save Bar (disabled in preview) */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: '#fff', borderTop: '1px solid #e5e7eb',
+        padding: '1rem 2rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '1rem',
+        zIndex: 50,
+      }}>
+        <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>Preview only — nothing is saved here.</span>
+        <button
+          disabled
+          style={{ padding: '10px 28px', background: '#d1d5db', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 600, cursor: 'not-allowed' }}
+        >
+          Save All Changes
+        </button>
       </div>
 
     </div>
