@@ -6,7 +6,6 @@ const inp = {
   width: '100%', padding: '10px 12px', fontSize: '0.9rem',
   borderRadius: '8px', border: '1px solid #e5e7eb',
   boxSizing: 'border-box', background: '#fff', color: '#111827',
-  outline: 'none',
 }
 
 const label = {

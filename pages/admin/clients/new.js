@@ -14,7 +14,6 @@ const inputStyle = {
   color: '#111827',
   background: '#fff',
   boxSizing: 'border-box',
-  outline: 'none',
 }
 
 const labelStyle = {

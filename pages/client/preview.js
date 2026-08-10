@@ -6,7 +6,7 @@ const inp = {
   width: '100%', padding: '10px 12px', fontSize: '0.9rem',
   borderRadius: '8px', border: '1px solid #e5e7eb',
   boxSizing: 'border-box', background: '#f3f4f6', color: '#6b7280',
-  cursor: 'not-allowed', outline: 'none',
+  cursor: 'not-allowed',
 }
 const ta = { ...inp, resize: 'vertical' }
 

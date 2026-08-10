@@ -51,7 +51,7 @@ function EditSpan({ value, onChange, multiline = false, style, darkBg = false })
     color, fontSize: 'inherit', fontFamily: 'inherit', fontWeight: 'inherit',
     lineHeight: 'inherit', letterSpacing: 'inherit',
     padding: '4px 8px', width: '100%', boxSizing: 'border-box',
-    outline: 'none', resize: multiline ? 'vertical' : 'none',
+    resize: multiline ? 'vertical' : 'none',
   }
 
   return (
@@ -152,7 +152,7 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
               width: '100%', boxSizing: 'border-box',
               background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(32,178,170,0.6)',
               borderRadius: '6px', color: '#fff', fontFamily: 'sans-serif',
-              fontSize: '13px', padding: '8px 10px', outline: 'none',
+              fontSize: '13px', padding: '8px 10px',
             }}
           />
           {draft && (
@@ -248,6 +248,22 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
     })
   }
 
+  function setTeamMember(idx, field, value) {
+    setC(prev => {
+      const teamMembers = [...(prev.teamMembers || [])]
+      teamMembers[idx] = { ...teamMembers[idx], [field]: value }
+      return { ...prev, teamMembers }
+    })
+  }
+
+  function setTestimonial(idx, field, value) {
+    setC(prev => {
+      const testimonials = [...(prev.testimonials || [])]
+      testimonials[idx] = { ...testimonials[idx], [field]: value }
+      return { ...prev, testimonials }
+    })
+  }
+
   async function handleSaveAndExit() {
     setSaving(true)
     setSaveMsg('')
@@ -286,6 +302,8 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
   }
 
   const services = c.services || []
+  const teamMembers = c.teamMembers || []
+  const testimonials = c.testimonials || []
 
   const heroStyle = c.heroImageUrl
     ? {
@@ -426,6 +444,27 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           .service-card__title { font-size: 1.05rem; font-weight: 700; color: #0d3b5e; margin-bottom: 0.5rem; }
           .service-card__desc { font-size: 0.9rem; color: #6b7280; line-height: 1.6; }
           .services__cta { text-align: center; margin-top: 2.5rem; }
+
+          /* TEAM */
+          .team__grid { display: grid; list-style: none; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 2rem; }
+          .team-card { text-align: center; }
+          .team-card__photo {
+            width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 1rem; overflow: hidden;
+            background: linear-gradient(180deg,#1e7a8c,#0e4a6e);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1.75rem; font-weight: 700;
+          }
+          .team-card__photo img { width: 100%; height: 100%; object-fit: cover; }
+          .team-card__name { font-size: 1rem; font-weight: 700; color: #0d3b5e; margin-bottom: 0.2rem; }
+          .team-card__title { font-size: 0.82rem; font-weight: 600; color: #20b2aa; margin-bottom: 0.6rem; }
+          .team-card__bio { font-size: 0.88rem; color: #6b7280; line-height: 1.6; }
+
+          /* TESTIMONIALS */
+          .testimonials__grid { display: grid; list-style: none; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 1.5rem; }
+          .testimonial-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.75rem; }
+          .testimonial-card__quote { font-size: 0.95rem; color: #374151; line-height: 1.7; font-style: italic; margin-bottom: 1rem; }
+          .testimonial-card__author { font-size: 0.9rem; font-weight: 700; color: #0d3b5e; }
+          .testimonial-card__role { font-size: 0.8rem; color: #6b7280; margin-top: 0.1rem; }
 
           /* ABOUT TEASER */
           .teaser__inner { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
@@ -749,6 +788,89 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           </div>
         </section>
 
+        {/* TEAM */}
+        {(editMode || teamMembers.length > 0) && (
+          <>
+            <hr className="section-divider" />
+            <section className="section" id="team" style={{ background: '#fff' }}>
+              <div className="container">
+                <div className="section__header">
+                  <p className="section__eyebrow">Meet the Team</p>
+                  <h2 className="section__heading">Our Specialists</h2>
+                </div>
+                {teamMembers.length > 0 ? (
+                  <ul className="team__grid">
+                    {teamMembers.map((m, i) => (
+                      <li key={i} className="team-card">
+                        <EditImage value={m.imageUrl} onChange={v => setTeamMember(i, 'imageUrl', v)} label="Photo" editMode={editMode} variant="corner">
+                          <div className="team-card__photo">
+                            {m.imageUrl
+                              ? <img src={m.imageUrl} alt={m.name || 'Team member'} />
+                              : <span>{(m.name || '?').charAt(0).toUpperCase()}</span>}
+                          </div>
+                        </EditImage>
+                        {editMode ? (
+                          <>
+                            <div className="team-card__name"><EditSpan value={m.name} onChange={v => setTeamMember(i, 'name', v)} /></div>
+                            <div className="team-card__title"><EditSpan value={m.title} onChange={v => setTeamMember(i, 'title', v)} /></div>
+                            <div className="team-card__bio"><EditSpan value={m.bio} onChange={v => setTeamMember(i, 'bio', v)} multiline /></div>
+                          </>
+                        ) : (
+                          <>
+                            <h3 className="team-card__name">{m.name}</h3>
+                            {m.title && <p className="team-card__title">{m.title}</p>}
+                            {m.bio && <p className="team-card__bio">{m.bio}</p>}
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>No team members added yet. Use Settings to add team members.</p>
+                )}
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* TESTIMONIALS */}
+        {(editMode || testimonials.length > 0) && (
+          <>
+            <hr className="section-divider" />
+            <section className="section" id="testimonials" style={{ background: '#f8fafc' }}>
+              <div className="container">
+                <div className="section__header">
+                  <p className="section__eyebrow">Testimonials</p>
+                  <h2 className="section__heading">What Patients Say</h2>
+                </div>
+                {testimonials.length > 0 ? (
+                  <ul className="testimonials__grid">
+                    {testimonials.map((t, i) => (
+                      <li key={i} className="testimonial-card">
+                        {editMode ? (
+                          <>
+                            <div className="testimonial-card__quote"><EditSpan value={t.quote} onChange={v => setTestimonial(i, 'quote', v)} multiline /></div>
+                            <div className="testimonial-card__author"><EditSpan value={t.author} onChange={v => setTestimonial(i, 'author', v)} /></div>
+                            <div className="testimonial-card__role"><EditSpan value={t.role} onChange={v => setTestimonial(i, 'role', v)} /></div>
+                          </>
+                        ) : (
+                          <>
+                            {t.quote && <p className="testimonial-card__quote">&ldquo;{t.quote}&rdquo;</p>}
+                            <p className="testimonial-card__author">{t.author}</p>
+                            {t.role && <p className="testimonial-card__role">{t.role}</p>}
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>No testimonials added yet. Use Settings to add testimonials.</p>
+                )}
+              </div>
+            </section>
+          </>
+        )}
+
         <hr className="section-divider" />
 
         {/* CONTACT */}
@@ -895,6 +1017,8 @@ export async function getServerSideProps(context) {
       stat4Number: raw.stat4Number || '',
       stat4Label:  raw.stat4Label  || '',
       services:       (raw.services || []).map(s => ({ title: s.title || '', description: s.description || '' })),
+      teamMembers:    (raw.teamMembers  || []).map(m => ({ name: m.name || '', title: m.title || '', bio: m.bio || '', imageUrl: m.imageUrl || '' })),
+      testimonials:   (raw.testimonials || []).map(t => ({ quote: t.quote || '', author: t.author || '', role: t.role || '' })),
       contactPhone:    raw.contactPhone    || '',
       contactEmail:    raw.contactEmail    || '',
       contactAddress:  raw.contactAddress  || '',
