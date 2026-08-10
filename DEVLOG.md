@@ -163,17 +163,39 @@ The upsert filter must use `siteSlug` only (not `siteSlug + tenantId`) to avoid 
 
 ---
 
+### 2026-08-10 — Design system rollout + code review + fixes (Claude Code)
+
+Moved from Perplexity-assisted edits to Claude Code for this project. Summary of the session (full detail in commit messages on `main`):
+
+**Design system pass:** Restyled `/admin`, `/admin/clients`, `/admin/clients/[id]`, `/admin/clients/new`, `/client`, `/client/preview`, and the authenticated CMS toolbar on `/site/[slug]` to a consistent white/indigo "Canvō" system. Also restyled `/` and `/login`, which had been left as unstyled debug-era pages.
+
+**Full code review**, then fixed everything it found:
+- Stored XSS: editable fields no longer render raw HTML on the public site (`heroHeadline`/`contactAddress` now go through an allowlist escaper that permits only `<br>`; `EditSpan`'s own display no longer uses `dangerouslySetInnerHTML` at all).
+- `/api/admin/impersonate.js` was importing `authOptions` from the NextAuth catch-all route (no named export there) — the exact anti-pattern flagged in the 2026-07-09 entry below. This meant the admin role check silently always failed and "View as Client" never worked. Fixed the import; also added the missing `/api/admin/impersonate-exit` route so "Back to Admin" actually clears the cookie.
+- Deleting a client now also deletes its `SiteContent` doc — previously the slug couldn't be reused without an `E11000 duplicate key` error.
+- Removed the dead `ContentEntry` model and its two unused/broken routes (`pages/api/site/[slug].js`, `pages/api/content/index.js`) — fully superseded by `SiteContent` since the 2026-07-20 rewrite.
+- Public site nav now collapses behind a hamburger below 768px instead of overlapping at mobile widths.
+- Contact form caption corrected — it claimed submissions were live when every field is `disabled` and no submission endpoint exists.
+- **Team Members and Testimonials were fully wired (schema, `/client` editor, save API) but `pages/site/[slug].js` never rendered them** — anything a client filled in there silently never appeared on their live site. Added both as new sections.
+- Accessibility: every text input across the app set `outline: none` with no replacement — zero keyboard focus indicator anywhere. Fixed globally via `:focus-visible` in `styles/globals.css`, plus a `prefers-reduced-motion` rule (covers the trust-bar scroll animation).
+- Audited role isolation (client vs. admin) across every page/API route — already correctly enforced everywhere, no gaps found.
+- Added real image uploads (logo, hero image, team photos) via Cloudinary's unsigned-upload flow, alongside the existing URL-paste fields. Needs `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` / `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` set in Vercel before it's live — see `.env.local.example`.
+
+**Decided, not yet done:** contact form backend — deliberately left as "coming soon" for now rather than wiring an email/CRM backend.
+
+---
+
 ## Open Items / Next Steps
 
-- [ ] Inline editing sidebar (font controls, image upload, advanced options)
-- [ ] Client deletion flow in admin dashboard
-- [ ] Image upload support (heroImageUrl, logoUrl)
-- [ ] Mobile QA pass on site editor
-- [ ] Remove debug `console.log` lines from `pages/api/site-content/[slug].js` once confirmed stable
+- [x] Image upload support (heroImageUrl, logoUrl) — Cloudinary, unsigned upload, Aug 10 2026 (pending env vars to activate)
+- [ ] **Activate Cloudinary uploads** — set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` in Vercel project settings
+- [ ] Live-site contact form: decide backend (store-to-Mongo, or email via a provider) — currently "coming soon" by design
+- [ ] Mobile QA on `/client` and `/client/preview` form layouts (2-column fields get tight at 375px — not broken, just worth revisiting during the visual pass)
+- [ ] Inline editing sidebar (font controls, advanced options)
 - [ ] SEO panel UI in edit mode
 - [ ] AI chatbot assistant (deferred — cost dependent)
-- [ ] Test full edit loop: log in as drjohn117@gmail.com → edit a field in CMS editor → save → verify Apex site reflects change on reload
-- [ ] Extend cms.js field mapping as more SiteContent fields become editable (team members, stats, about text)
+- [ ] Visual/aesthetic redesign pass — deliberately last, once functional work is settled
+- [ ] Remove debug `console.log` lines from `pages/api/site-content/[slug].js` once confirmed stable
 
 ---
 
