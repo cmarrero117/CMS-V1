@@ -5,6 +5,7 @@ import { signOut } from 'next-auth/react'
 import dbConnect from '../../lib/db'
 import SiteContent from '../../lib/models/SiteContent'
 import Tenant from '../../lib/models/Tenant'
+import ImageUploadButton from '../../components/ImageUploadButton'
 
 // ─── EditSpan: inline text editor ────────────────────────────────────────────
 function EditSpan({ value, onChange, multiline = false, style, darkBg = false }) {
@@ -141,6 +142,20 @@ function EditImage({ value, onChange, label = 'Image URL', children, editMode, v
           <p style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontSize: '12px',
             fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             {label}
+          </p>
+          <ImageUploadButton
+            label="Upload from your computer"
+            onUploaded={url => { onChange(url); setOpen(false) }}
+            style={{
+              width: '100%', boxSizing: 'border-box', background: '#20b2aa', color: '#fff',
+              border: 'none', borderRadius: '6px', padding: '9px', fontWeight: 700,
+              fontSize: '13px', fontFamily: 'sans-serif', marginBottom: '10px',
+            }}
+            errorStyle={{ display: 'block', fontSize: '11px', color: '#fca5a5', marginTop: '4px' }}
+          />
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'sans-serif', fontSize: '11px',
+            textAlign: 'center', margin: '0 0 10px' }}>
+            — or paste an image URL —
           </p>
           <input ref={inputRef} type="url" value={draft} placeholder="https://example.com/image.jpg"
             onChange={e => setDraft(e.target.value)}

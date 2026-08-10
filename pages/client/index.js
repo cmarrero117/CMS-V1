@@ -8,6 +8,7 @@ import { parse as parseCookies } from 'cookie'
 import dbConnect from '../../lib/db'
 import SiteContent from '../../lib/models/SiteContent'
 import Tenant from '../../lib/models/Tenant'
+import ImageUploadButton from '../../components/ImageUploadButton'
 
 const inp = {
   width: '100%', padding: '10px 12px', fontSize: '0.9rem',
@@ -15,6 +16,10 @@ const inp = {
   boxSizing: 'border-box', background: '#fff', color: '#111827',
 }
 const ta = { ...inp, resize: 'vertical' }
+const uploadBtn = {
+  padding: '10px 16px', background: '#f3f4f6', border: '1px solid #e5e7eb',
+  borderRadius: '8px', fontSize: '0.85rem', fontWeight: 500, color: '#374151', whiteSpace: 'nowrap',
+}
 
 function Field({ label, hint, children }) {
   return (
@@ -236,8 +241,11 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
               <Field label="Bio" hint="A short paragraph about this person.">
                 <textarea style={ta} rows={3} value={member.bio || ''} onChange={e => setTeamMember(i, 'bio', e.target.value)} placeholder="Brief background, credentials, and specialty..." />
               </Field>
-              <Field label="Photo URL" hint="Direct link to their profile photo.">
-                <input style={inp} value={member.imageUrl || ''} onChange={e => setTeamMember(i, 'imageUrl', e.target.value)} placeholder="https://..." />
+              <Field label="Photo" hint="Upload a headshot, or paste a URL if it's already hosted somewhere.">
+                <div style={{ display: 'flex', gap: '0.6rem' }}>
+                  <input style={{ ...inp, flex: 1 }} value={member.imageUrl || ''} onChange={e => setTeamMember(i, 'imageUrl', e.target.value)} placeholder="https://..." />
+                  <ImageUploadButton label="Upload" onUploaded={url => setTeamMember(i, 'imageUrl', url)} style={uploadBtn} />
+                </div>
               </Field>
             </div>
           ))}
@@ -287,11 +295,17 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
 
         {/* MEDIA */}
         <SectionCard title="Media" subtitle="Image URLs for your logo and hero background.">
-          <Field label="Logo URL" hint="Paste the URL of your logo image. Leave blank to use the default.">
-            <input style={inp} value={form.logoUrl || ''} onChange={e => set('logoUrl', e.target.value)} placeholder="https://..." />
+          <Field label="Logo" hint="Upload an image, or paste a URL if it's already hosted somewhere.">
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <input style={{ ...inp, flex: 1 }} value={form.logoUrl || ''} onChange={e => set('logoUrl', e.target.value)} placeholder="https://..." />
+              <ImageUploadButton label="Upload" onUploaded={url => set('logoUrl', url)} style={uploadBtn} />
+            </div>
           </Field>
-          <Field label="Hero Image URL" hint="Background or banner photo for the hero section.">
-            <input style={inp} value={form.heroImageUrl || ''} onChange={e => set('heroImageUrl', e.target.value)} placeholder="https://..." />
+          <Field label="Hero Image" hint="Background or banner photo for the hero section.">
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <input style={{ ...inp, flex: 1 }} value={form.heroImageUrl || ''} onChange={e => set('heroImageUrl', e.target.value)} placeholder="https://..." />
+              <ImageUploadButton label="Upload" onUploaded={url => set('heroImageUrl', url)} style={uploadBtn} />
+            </div>
           </Field>
         </SectionCard>
 
