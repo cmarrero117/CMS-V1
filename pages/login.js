@@ -20,7 +20,7 @@ const label = {
 // its own duration (-(i/N)*duration) so start phases spread evenly across
 // the whole population — that's what keeps many streaks crossing the
 // screen at once instead of clustering on/off together.
-const LINE_COUNT = 16
+const LINE_COUNT = 28
 const LINE_PALETTE = [
   'rgba(79,70,229,0.22)',
   'rgba(32,178,170,0.18)',
@@ -33,8 +33,9 @@ const LINE_DURATIONS = [19, 27, 16, 31, 22, 25, 18, 29]
 
 const LINES = Array.from({ length: LINE_COUNT }, (_, i) => {
   const duration = LINE_DURATIONS[i % LINE_DURATIONS.length]
-  const jitter = i % 2 === 0 ? 0 : 3.1 // slight zigzag so spacing doesn't read as a rigid grid
-  const top = (i * (100 / LINE_COUNT) + jitter) % 100
+  const step = 100 / LINE_COUNT
+  const jitter = i % 2 === 0 ? 0 : step * 0.4 // zigzag scaled to spacing so it stays even as count changes
+  const top = (i * step + jitter) % 100
   const delay = -((i / LINE_COUNT) * duration)
   return {
     top: `${top.toFixed(1)}%`,
