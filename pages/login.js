@@ -15,18 +15,34 @@ const label = {
 }
 
 // Deterministic (no Math.random — must match on server + client render)
-// diagonal streaks: staggered vertical position, duration, start offset,
-// and alternating brand colors so the flow reads as organic, not tiled.
-const LINES = [
-  { top: '6%',  duration: 19, delay: -3,  color: 'rgba(79,70,229,0.22)' },
-  { top: '17%', duration: 27, delay: -14, color: 'rgba(32,178,170,0.18)' },
-  { top: '29%', duration: 16, delay: -8,  color: 'rgba(79,70,229,0.16)' },
-  { top: '41%', duration: 31, delay: -2,  color: 'rgba(32,178,170,0.22)' },
-  { top: '53%', duration: 22, delay: -18, color: 'rgba(79,70,229,0.18)' },
-  { top: '66%', duration: 25, delay: -6,  color: 'rgba(32,178,170,0.16)' },
-  { top: '79%', duration: 18, delay: -12, color: 'rgba(79,70,229,0.22)' },
-  { top: '90%', duration: 29, delay: -21, color: 'rgba(32,178,170,0.18)' },
+// diagonal streaks: same palette/speeds as before, just more of them,
+// spread evenly down the page. Each line's delay is set as a fraction of
+// its own duration (-(i/N)*duration) so start phases spread evenly across
+// the whole population — that's what keeps many streaks crossing the
+// screen at once instead of clustering on/off together.
+const LINE_COUNT = 16
+const LINE_PALETTE = [
+  'rgba(79,70,229,0.22)',
+  'rgba(32,178,170,0.18)',
+  'rgba(79,70,229,0.16)',
+  'rgba(32,178,170,0.22)',
+  'rgba(79,70,229,0.18)',
+  'rgba(32,178,170,0.16)',
 ]
+const LINE_DURATIONS = [19, 27, 16, 31, 22, 25, 18, 29]
+
+const LINES = Array.from({ length: LINE_COUNT }, (_, i) => {
+  const duration = LINE_DURATIONS[i % LINE_DURATIONS.length]
+  const jitter = i % 2 === 0 ? 0 : 3.1 // slight zigzag so spacing doesn't read as a rigid grid
+  const top = (i * (100 / LINE_COUNT) + jitter) % 100
+  const delay = -((i / LINE_COUNT) * duration)
+  return {
+    top: `${top.toFixed(1)}%`,
+    duration,
+    delay: Number(delay.toFixed(2)),
+    color: LINE_PALETTE[i % LINE_PALETTE.length],
+  }
+})
 
 export default function Login() {
   const [email, setEmail]       = useState('')
