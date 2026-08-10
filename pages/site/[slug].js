@@ -28,14 +28,19 @@ function EditSpan({ value, onChange, multiline = false, style, darkBg = false })
   const cancel  = () => { setDraft(value || ''); setEditing(false) }
 
   if (!editing) {
+    const isEmpty = !value
     return (
       <span
         style={{ ...style, cursor: 'pointer', outline: '2px dashed rgba(32,178,170,0.7)',
-          outlineOffset: '3px', borderRadius: '3px', display: 'inline-block' }}
+          outlineOffset: '3px', borderRadius: '3px', display: 'inline-block',
+          whiteSpace: multiline ? 'pre-wrap' : style?.whiteSpace,
+          fontStyle: isEmpty ? 'italic' : style?.fontStyle,
+          opacity: isEmpty ? 0.45 : style?.opacity }}
         title="Click to edit"
         onClick={() => { setDraft(value || ''); setEditing(true) }}
-        dangerouslySetInnerHTML={{ __html: value || '<em style="opacity:0.45">Click to edit…</em>' }}
-      />
+      >
+        {isEmpty ? 'Click to edit…' : value}
+      </span>
     )
   }
 
@@ -198,12 +203,25 @@ const DEFAULT_STATS = [
   { number: '', label: '' },
 ]
 
+// ─── HTML escaping helper for the two fields that render as __html ───────────
+// Escapes everything, then re-opens only a bare <br> so line breaks still work
+// without allowing scripts, event handlers, or any other markup through.
+function escapeAllowingBr(str) {
+  if (!str) return ''
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/&lt;br\s*\/?&gt;/gi, '<br>')
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slug }) {
   const [c, setC]               = useState(initialC || {})
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving]     = useState(false)
   const [saveMsg, setSaveMsg]   = useState('')
+  const [navOpen, setNavOpen]   = useState(false)
 
   const toolbarRef = useRef(null)
   const [toolbarHeight, setToolbarHeight] = useState(58)
@@ -329,6 +347,24 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           .apex-nav__links { display: flex; align-items: center; gap: 2rem; list-style: none; }
           .apex-nav__links a { font-size: 0.875rem; font-weight: 500; color: #374151; }
           .btn-nav { background: #20b2aa; color: #fff; border-radius: 50px; padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 600; }
+          .apex-nav__toggle { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-shrink: 0; }
+          .apex-nav__toggle-bar { display: block; width: 22px; height: 2px; background: #0d3b5e; border-radius: 2px; }
+          .apex-nav__toggle-bar + .apex-nav__toggle-bar { margin-top: 5px; }
+          @media (max-width: 768px) {
+            .apex-nav__toggle { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+            .apex-nav__links {
+              display: none;
+              position: absolute; top: 100%; left: 0; right: 0;
+              background: #fff; border-bottom: 1px solid #e5e7eb;
+              flex-direction: column; align-items: flex-start; gap: 0;
+              padding: 0.5rem clamp(1.5rem,5vw,3rem) 1.25rem;
+              box-shadow: 0 12px 24px rgba(13,45,74,0.1);
+            }
+            .apex-nav__links.is-open { display: flex; }
+            .apex-nav__links li { width: 100%; }
+            .apex-nav__links a { display: block; padding: 0.7rem 0; }
+            .apex-nav__links .btn-nav { display: inline-block; margin-top: 0.4rem; }
+          }
 
           /* HERO */
           .apex-hero {
@@ -530,12 +566,22 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
               )}
             </div>
           </a>
-          <ul className="apex-nav__links">
-            <li><a href="#services">Services</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
-            <li><a className="btn-nav" href="#contact">Book Appointment</a></li>
+          <ul className={`apex-nav__links${navOpen ? ' is-open' : ''}`}>
+            <li><a href="#services" onClick={() => setNavOpen(false)}>Services</a></li>
+            <li><a href="#about" onClick={() => setNavOpen(false)}>About</a></li>
+            <li><a href="#contact" onClick={() => setNavOpen(false)}>Contact</a></li>
+            <li><a className="btn-nav" href="#contact" onClick={() => setNavOpen(false)}>Book Appointment</a></li>
           </ul>
+          <button
+            className="apex-nav__toggle"
+            aria-label={navOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={navOpen}
+            onClick={() => setNavOpen(o => !o)}
+          >
+            <span className="apex-nav__toggle-bar" />
+            <span className="apex-nav__toggle-bar" />
+            <span className="apex-nav__toggle-bar" />
+          </button>
         </header>
 
         {/* HERO */}
@@ -557,7 +603,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
               ) : (
                 c.heroHeadline ? (
                   <h1 className="apex-hero__heading"
-                    dangerouslySetInnerHTML={{ __html: c.heroHeadline }} />
+                    dangerouslySetInnerHTML={{ __html: escapeAllowingBr(c.heroHeadline) }} />
                 ) : (
                   <h1 className="apex-hero__heading" style={{ opacity: 0.4, fontStyle: 'italic' }}>Your headline here</h1>
                 )
@@ -722,7 +768,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                       {editMode ? (
                         <EditSpan value={c.contactAddress} onChange={v => set('contactAddress', v)} multiline />
                       ) : (
-                        <p dangerouslySetInnerHTML={{ __html: c.contactAddress.replace(/\n/g,'<br>') }} />
+                        <p dangerouslySetInnerHTML={{ __html: escapeAllowingBr(c.contactAddress).replace(/\n/g,'<br>') }} />
                       )}
                     </li>
                   )}
@@ -767,7 +813,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
                 </div>
                 <button className="form-submit" disabled>Send Request</button>
                 <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.75rem', textAlign: 'center' }}>
-                  Form preview only — submissions active on the live site.
+                  Contact form — coming soon.
                 </p>
               </div>
             </div>

@@ -3,7 +3,7 @@ import { authOptions } from '../../../lib/authOptions'
 import dbConnect from '../../../lib/db'
 import User from '../../../lib/models/User'
 import Tenant from '../../../lib/models/Tenant'
-import ContentEntry from '../../../lib/models/ContentEntry'
+import SiteContent from '../../../lib/models/SiteContent'
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions)
@@ -25,11 +25,9 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Client not found' })
   }
 
-  // Delete all content entries for this client
-  await ContentEntry.deleteMany({ ownerEmail: user.email })
-
-  // Delete the tenant if one is linked
+  // Delete the tenant and its site content if one is linked
   if (user.tenantId) {
+    await SiteContent.deleteOne({ tenantId: user.tenantId })
     await Tenant.findByIdAndDelete(user.tenantId)
   }
 
