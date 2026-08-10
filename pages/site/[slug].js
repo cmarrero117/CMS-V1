@@ -588,7 +588,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
       <div style={{ paddingTop: canEdit ? `${toolbarHeight}px` : '0' }}>
 
         {/* NAV */}
-        <header className="apex-nav">
+        <header className="apex-nav" style={{ top: canEdit ? `${toolbarHeight}px` : 0 }}>
           <a className="apex-nav__logo" href="#">
             <EditImage value={c.logoUrl} onChange={v => set('logoUrl', v)} label="Logo Image" editMode={editMode} variant="corner">
               <div className="apex-nav__logo-tile">
