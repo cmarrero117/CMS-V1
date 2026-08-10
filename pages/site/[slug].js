@@ -205,6 +205,19 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
   const [saving, setSaving]     = useState(false)
   const [saveMsg, setSaveMsg]   = useState('')
 
+  const toolbarRef = useRef(null)
+  const [toolbarHeight, setToolbarHeight] = useState(58)
+
+  useEffect(() => {
+    const el = toolbarRef.current
+    if (!canEdit || !el) return
+    const measure = () => setToolbarHeight(el.getBoundingClientRect().height)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [canEdit])
+
   function set(field, value) {
     setC(prev => ({ ...prev, [field]: value }))
   }
@@ -269,25 +282,17 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
   const statNumber = (n, def) => (n && n.trim()) ? n : def
   const statLabel  = (l, def) => (l && l.trim()) ? l : def
 
-  const tbBtn = (variant = 'ghost') => ({
-    background: variant === 'primary' ? '#20b2aa'
-      : variant === 'settings' ? 'rgba(255,255,255,0.08)'
-      : 'rgba(255,255,255,0.1)',
-    color: '#fff',
-    border: variant === 'ghost' ? '1px solid rgba(255,255,255,0.3)'
-      : variant === 'settings' ? '1px solid rgba(255,255,255,0.2)'
-      : 'none',
-    borderRadius: '6px',
-    padding: '7px 14px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontFamily: 'sans-serif',
-    fontWeight: variant === 'primary' ? 700 : 400,
-    textDecoration: 'none',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '5px',
-  })
+  const tbBtn = (variant = 'ghost') => {
+    const base = {
+      borderRadius: '8px', padding: '7px 16px', cursor: 'pointer',
+      fontSize: '13px', fontWeight: 600, textDecoration: 'none',
+      display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap',
+      border: '1px solid transparent',
+    }
+    if (variant === 'primary') return { ...base, background: '#4f46e5', color: '#fff', borderColor: '#4f46e5' }
+    if (variant === 'outline') return { ...base, background: '#fff', color: '#374151', borderColor: '#e5e7eb' }
+    return { ...base, background: 'transparent', color: '#6b7280' } // ghost
+  }
 
   return (
     <>
@@ -424,46 +429,65 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           .footer__bottom p { font-size: 0.8rem; }
           .footer__legal { display: flex; gap: 1.5rem; }
           .footer__legal a { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+
+          /* CMS TOOLBAR */
+          .cms-tb-btn { transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+          .cms-tb-btn--primary:hover { background: #4338ca; border-color: #4338ca; }
+          .cms-tb-btn--outline:hover { background: #f9fafb; border-color: #d1d5db; }
+          .cms-tb-btn--ghost:hover { background: #f3f4f6; color: #374151; }
+          .cms-tb-btn:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }
+          .cms-tb-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+          @media (max-width: 640px) {
+            .cms-toolbar__status { display: none; }
+          }
         `}</style>
       </Head>
 
       {/* ─── CMS TOOLBAR ─────────────────────────────────────────────────── */}
       {canEdit && (
-        <div style={{
+        <div ref={toolbarRef} className="cms-toolbar" style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999,
-          background: editMode ? '#0d2d4a' : '#1a5c8a',
+          background: '#fff', borderBottom: '1px solid #e5e7eb',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 24px', boxShadow: '0 2px 16px rgba(0,0,0,0.4)',
+          flexWrap: 'wrap', rowGap: '8px', columnGap: '16px',
+          padding: '10px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontWeight: 700, fontSize: '13px' }}>CMS</span>
-            <span style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'sans-serif', fontSize: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', minWidth: 0 }}>
+            <span style={{ color: '#4f46e5', fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.3px' }}>Canvō</span>
+            <span style={{
+              background: editMode ? '#4f46e5' : '#eef2ff', color: editMode ? '#fff' : '#4338ca',
+              fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
+              padding: '3px 10px', borderRadius: '999px', whiteSpace: 'nowrap',
+            }}>
+              {editMode ? 'CMS Editing' : 'CMS Preview'}
+            </span>
+            <span className="cms-toolbar__status" style={{ color: '#6b7280', fontSize: '12.5px' }}>
               {editMode
-                ? 'Click outlined text or image buttons to edit. Save & Exit when done.'
+                ? 'Click outlined text or image buttons to edit.'
                 : 'Previewing ' + tenant.name}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             {saveMsg && (
-              <span style={{ color: '#7ee8e4', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 600 }}>
-                {saveMsg}
+              <span style={{ color: '#16a34a', fontSize: '12.5px', fontWeight: 600 }}>
+                &#10003; {saveMsg}
               </span>
             )}
-            <a href="/client" style={tbBtn('settings')} title="Advanced settings, SEO & bulk editing">
+            <a href="/client" className="cms-tb-btn cms-tb-btn--outline" style={tbBtn('outline')} title="Advanced settings, SEO & bulk editing">
               Settings
             </a>
             {editMode ? (
               <>
-                <button onClick={handleDiscard} style={tbBtn('ghost')}>Discard</button>
+                <button onClick={handleDiscard} className="cms-tb-btn cms-tb-btn--ghost" style={tbBtn('ghost')}>Discard</button>
                 <button onClick={handleSaveAndExit} disabled={saving}
-                  style={{ ...tbBtn('primary'), opacity: saving ? 0.6 : 1 }}>
+                  className="cms-tb-btn cms-tb-btn--primary" style={tbBtn('primary')}>
                   {saving ? 'Saving...' : 'Save & Exit'}
                 </button>
               </>
             ) : (
               <>
-                <button onClick={() => setEditMode(true)} style={tbBtn('primary')}>Edit Site</button>
-                <button onClick={() => signOut({ callbackUrl: '/login' })} style={tbBtn('ghost')}>Sign Out</button>
+                <button onClick={() => setEditMode(true)} className="cms-tb-btn cms-tb-btn--primary" style={tbBtn('primary')}>Edit Site</button>
+                <button onClick={() => signOut({ callbackUrl: '/login' })} className="cms-tb-btn cms-tb-btn--ghost" style={tbBtn('ghost')}>Sign Out</button>
               </>
             )}
           </div>
@@ -471,7 +495,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
       )}
 
       {/* ─── PAGE CANVAS ─────────────────────────────────────────────────── */}
-      <div style={{ paddingTop: canEdit ? '46px' : '0' }}>
+      <div style={{ paddingTop: canEdit ? `${toolbarHeight}px` : '0' }}>
 
         {/* NAV */}
         <header className="apex-nav">
