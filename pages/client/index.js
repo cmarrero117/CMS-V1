@@ -65,6 +65,21 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
     setForm(f => ({ ...f, services: updated }))
   }
 
+  const setTrustBarItem = (i, val) => {
+    const updated = [...(form.trustBarItems || [])]
+    updated[i] = val
+    setForm(f => ({ ...f, trustBarItems: updated }))
+  }
+  const addTrustBarItem = () => {
+    if ((form.trustBarItems || []).length >= 6) return
+    setForm(f => ({ ...f, trustBarItems: [...(f.trustBarItems || []), ''] }))
+  }
+  const removeTrustBarItem = i => {
+    const updated = [...(form.trustBarItems || [])]
+    updated.splice(i, 1)
+    setForm(f => ({ ...f, trustBarItems: updated }))
+  }
+
   const setTeamMember = (i, key, val) => {
     const updated = [...(form.teamMembers || [])]
     updated[i] = { ...updated[i], [key]: val }
@@ -202,6 +217,14 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           <Field label="About Text" hint="A short paragraph describing your practice, business, or background.">
             <textarea style={ta} rows={4} value={form.aboutText || ''} onChange={e => set('aboutText', e.target.value)} placeholder="e.g. We are a team of specialists dedicated to..." />
           </Field>
+          <div style={twoCol}>
+            <Field label="Nav Button Text" hint="Top-right button in the site navigation.">
+              <input style={inp} value={form.navCtaText || ''} onChange={e => set('navCtaText', e.target.value)} placeholder="e.g. Book Appointment or Get Started" />
+            </Field>
+            <Field label="Contact Section Heading" hint="Heading above your contact form.">
+              <input style={inp} value={form.contactHeading || ''} onChange={e => set('contactHeading', e.target.value)} placeholder="e.g. Book Your Appointment or Contact Us" />
+            </Field>
+          </div>
 
           {/* Services */}
           <div style={{ marginBottom: '0.5rem' }}>
@@ -220,6 +243,19 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
               <button style={addBtn} onClick={addService}>+ Add Service</button>
             )}
           </div>
+        </SectionCard>
+
+        {/* TRUST BAR */}
+        <SectionCard title="Trust Bar" subtitle="Short scrolling taglines shown right under your hero banner (up to 6). Leave empty to hide this bar.">
+          {(form.trustBarItems || []).map((item, i) => (
+            <div key={i} style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.6rem', alignItems: 'center' }}>
+              <input style={{ ...inp, flex: 1 }} value={item || ''} onChange={e => setTrustBarItem(i, e.target.value)} placeholder="e.g. Trusted by 500+ Clients" />
+              <button style={removeBtn} onClick={() => removeTrustBarItem(i)}>✕ Remove</button>
+            </div>
+          ))}
+          {(form.trustBarItems || []).length < 6 && (
+            <button style={addBtn} onClick={addTrustBarItem}>+ Add Trust Bar Item</button>
+          )}
         </SectionCard>
 
         {/* TEAM */}
@@ -394,6 +430,9 @@ export async function getServerSideProps(context) {
     heroCtaText:     existing?.heroCtaText     || '',
     heroCtaUrl:      existing?.heroCtaUrl      || '',
     aboutText:       existing?.aboutText       || '',
+    navCtaText:      existing?.navCtaText      || '',
+    contactHeading:  existing?.contactHeading  || '',
+    trustBarItems:   existing?.trustBarItems   || [],
     services:        existing?.services        || [],
     teamMembers:     existing?.teamMembers     || [],
     testimonials:    existing?.testimonials    || [],

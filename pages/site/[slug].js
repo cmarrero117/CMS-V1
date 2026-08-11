@@ -210,14 +210,6 @@ const SERVICE_ACCENTS = [
   { bg: '#f5f3ff', border: '#7c3aed', icon: '&#128138;' },
 ]
 
-// ─── Default stat fallbacks (generic, not Apex-specific) ─────────────────────
-const DEFAULT_STATS = [
-  { number: '', label: '' },
-  { number: '', label: '' },
-  { number: '', label: '' },
-  { number: '', label: '' },
-]
-
 // ─── HTML escaping helper for the two fields that render as __html ───────────
 // Escapes everything, then re-opens only a bare <br> so line breaks still work
 // without allowing scripts, event handlers, or any other markup through.
@@ -279,6 +271,14 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
     })
   }
 
+  function setTrustBarItem(idx, value) {
+    setC(prev => {
+      const trustBarItems = [...(prev.trustBarItems || [])]
+      trustBarItems[idx] = value
+      return { ...prev, trustBarItems }
+    })
+  }
+
   async function handleSaveAndExit() {
     setSaving(true)
     setSaveMsg('')
@@ -319,6 +319,7 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
   const services = c.services || []
   const teamMembers = c.teamMembers || []
   const testimonials = c.testimonials || []
+  const trustBarItems = c.trustBarItems || []
 
   const heroStyle = c.heroImageUrl
     ? {
@@ -329,9 +330,6 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
     : {}
 
   const navSubtitle = c.navSubtitle || ''
-
-  const statNumber = (n, def) => (n && n.trim()) ? n : def
-  const statLabel  = (l, def) => (l && l.trim()) ? l : def
 
   const tbBtn = (variant = 'ghost') => {
     const base = {
@@ -350,6 +348,16 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
       <Head>
         <title>{editMode ? 'Editing — ' : ''}{c.seoTitle || tenant.name}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {(c.seoDescription || c.aboutText) && <meta name="description" content={c.seoDescription || c.aboutText} />}
+        {c.seoKeywords && <meta name="keywords" content={c.seoKeywords} />}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={c.ogTitle || c.seoTitle || c.businessName || tenant.name} />
+        {(c.ogDescription || c.seoDescription || c.aboutText) && <meta property="og:description" content={c.ogDescription || c.seoDescription || c.aboutText} />}
+        {(c.ogImageUrl || c.heroImageUrl) && <meta property="og:image" content={c.ogImageUrl || c.heroImageUrl} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={c.ogTitle || c.seoTitle || c.businessName || tenant.name} />
+        {(c.ogDescription || c.seoDescription || c.aboutText) && <meta name="twitter:description" content={c.ogDescription || c.seoDescription || c.aboutText} />}
+        {(c.ogImageUrl || c.heroImageUrl) && <meta name="twitter:image" content={c.ogImageUrl || c.heroImageUrl} />}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -435,9 +443,10 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           .cta-url-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #7ee8e4; white-space: nowrap; }
 
           /* TRUST BAR */
-          .trust-bar { background: #0d2d4a; padding: 1rem 0; overflow: hidden; }
+          .trust-bar { background: #0d2d4a; padding: 1rem 0; overflow: hidden; min-height: 2.6rem; }
           .trust-bar__list { display: flex; gap: 3rem; align-items: center; list-style: none;
             animation: trustScroll 22s linear infinite; width: max-content; }
+          .trust-bar__list--static { animation: none; padding: 0 clamp(1.5rem,5vw,3rem); flex-wrap: wrap; }
           .trust-bar__item { display: flex; align-items: center; gap: 0.5rem;
             font-size: 0.8rem; font-weight: 600; color: rgba(255,255,255,0.75); white-space: nowrap; }
           @keyframes trustScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
@@ -624,7 +633,15 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
             <li><a href="#services" onClick={() => setNavOpen(false)}>Services</a></li>
             <li><a href="#about" onClick={() => setNavOpen(false)}>About</a></li>
             <li><a href="#contact" onClick={() => setNavOpen(false)}>Contact</a></li>
-            <li><a className="btn-nav" href="#contact" onClick={() => setNavOpen(false)}>Book Appointment</a></li>
+            <li>
+              {editMode ? (
+                <span className="btn-nav" style={{ display: 'inline-block' }}>
+                  <EditSpan value={c.navCtaText} onChange={v => set('navCtaText', v)} style={{ color: '#fff' }} />
+                </span>
+              ) : (
+                <a className="btn-nav" href="#contact" onClick={() => setNavOpen(false)}>{c.navCtaText || 'Get Started'}</a>
+              )}
+            </li>
           </ul>
           <button
             className="apex-nav__toggle"
@@ -697,14 +714,26 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
         </EditImage>
 
         {/* TRUST BAR */}
-        <section className="trust-bar" aria-hidden="true">
-          <ul className="trust-bar__list">
-            {['Accepting New Patients','Most Insurance Accepted','Same-Week Appointments','Expert Specialists',
-              'Accepting New Patients','Most Insurance Accepted','Same-Week Appointments','Expert Specialists'].map((t,i) => (
-              <li key={i} className="trust-bar__item">&#10086; {t}</li>
-            ))}
-          </ul>
-        </section>
+        {(editMode || trustBarItems.length > 0) && (
+          <section className="trust-bar" aria-hidden="true">
+            {trustBarItems.length > 0 ? (
+              <ul className={`trust-bar__list${editMode ? ' trust-bar__list--static' : ''}`}>
+                {(editMode ? trustBarItems : [...trustBarItems, ...trustBarItems]).map((t, i) => (
+                  <li key={i} className="trust-bar__item">
+                    &#10086;{' '}
+                    {editMode ? (
+                      <EditSpan value={t} onChange={v => setTrustBarItem(i, v)} darkBg />
+                    ) : t}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontStyle: 'italic', padding: '0 1rem' }}>
+                No trust bar items yet. Use Settings to add some.
+              </p>
+            )}
+          </section>
+        )}
 
         {/* SERVICES */}
         <section className="section" id="services" style={{ background: '#fff' }}>
@@ -893,7 +922,13 @@ export default function SiteEditor({ notFound, tenant, c: initialC, canEdit, slu
           <div className="container">
             <div className="section__header">
               <p className="section__eyebrow">Get in Touch</p>
-              <h2 className="section__heading">Book Your Appointment</h2>
+              {editMode ? (
+                <h2 className="section__heading">
+                  <EditSpan value={c.contactHeading} onChange={v => set('contactHeading', v)} />
+                </h2>
+              ) : (
+                <h2 className="section__heading">{c.contactHeading || 'Contact Us'}</h2>
+              )}
             </div>
             <div className="contact__grid">
               <div>
@@ -1023,6 +1058,9 @@ export async function getServerSideProps(context) {
       heroCtaText:     raw.heroCtaText     || '',
       heroCtaUrl:      raw.heroCtaUrl      || '',
       aboutText:       raw.aboutText       || '',
+      navCtaText:      raw.navCtaText      || '',
+      contactHeading:  raw.contactHeading  || '',
+      trustBarItems:   Array.isArray(raw.trustBarItems) ? raw.trustBarItems : [],
       stat1Number: raw.stat1Number || '',
       stat1Label:  raw.stat1Label  || '',
       stat2Number: raw.stat2Number || '',
@@ -1042,6 +1080,9 @@ export async function getServerSideProps(context) {
       seoTitle:        raw.seoTitle        || '',
       seoDescription:  raw.seoDescription  || '',
       seoKeywords:     raw.seoKeywords     || '',
+      ogTitle:         raw.ogTitle         || '',
+      ogDescription:   raw.ogDescription   || '',
+      ogImageUrl:      raw.ogImageUrl      || '',
     } : {}
 
     const canEdit = !!(

@@ -75,29 +75,6 @@ export default function AdminDashboard({ adminEmail }) {
             </div>
           </a>
 
-          {/* Preview Client Dashboard Card */}
-          <a href="/client/preview" style={{ textDecoration: 'none' }}>
-            <div style={{
-              background: '#ffffff',
-              border: '1px solid #e5e7eb',
-              borderRadius: '10px',
-              padding: '1.5rem',
-              cursor: 'pointer',
-            }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(79,70,229,0.10)'}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
-            >
-              <div style={{
-                width: '40px', height: '40px', borderRadius: '8px',
-                background: '#fef9c3', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: '1rem', fontSize: '1.25rem'
-              }}>🔍</div>
-              <h2 style={{ margin: '0 0 0.35rem', fontSize: '1rem', fontWeight: 600, color: '#111827' }}>Preview Client Dashboard</h2>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>See exactly what a client sees when they log in to manage their site.</p>
-              <span style={{ display: 'inline-block', marginTop: '1rem', fontSize: '0.875rem', color: '#b45309', fontWeight: 500 }}>Open Preview →</span>
-            </div>
-          </a>
-
         </div>
       </main>
     </div>

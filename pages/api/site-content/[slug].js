@@ -36,8 +36,8 @@ export default async function handler(req, res) {
     if (!tenant) return res.status(404).json({ error: 'Tenant not found for this slug' })
 
     const {
-      businessName, heroHeadline, heroSubheadline, heroCtaText, heroCtaUrl,
-      aboutText, services, teamMembers, testimonials,
+      businessName, navSubtitle, eyebrow, heroHeadline, heroSubheadline, heroCtaText, heroCtaUrl,
+      aboutText, navCtaText, contactHeading, trustBarItems, services, teamMembers, testimonials,
       contactPhone, contactEmail, contactAddress,
       logoUrl, heroImageUrl,
       seoTitle, seoDescription, seoKeywords,
@@ -48,11 +48,16 @@ export default async function handler(req, res) {
       siteSlug:        slug,
       tenantId:        tenant._id,
       businessName:    businessName || tenant.name || '',
+      navSubtitle,
+      eyebrow,
       heroHeadline,
       heroSubheadline,
       heroCtaText,
       heroCtaUrl,
       aboutText,
+      navCtaText,
+      contactHeading,
+      trustBarItems:   Array.isArray(trustBarItems) ? trustBarItems.slice(0, 6) : [],
       services:        Array.isArray(services)     ? services.slice(0, 6)     : [],
       teamMembers:     Array.isArray(teamMembers)  ? teamMembers.slice(0, 6)  : [],
       testimonials:    Array.isArray(testimonials) ? testimonials.slice(0, 4) : [],
