@@ -34,11 +34,27 @@ function Field({ label, hint, children }) {
   )
 }
 
-function SectionCard({ icon, title, subtitle, children }) {
+// Registry driving both the quick-nav rail and each SectionCard's identity —
+// one source of truth so the two stay in sync. Tone alternates indigo/teal
+// per section so cards are tellable apart by color, not just icon shape.
+const SECTIONS = [
+  { id: 'content',      icon: 'document', label: 'Content',     tone: 'accent' },
+  { id: 'trust-bar',    icon: 'shield',   label: 'Trust Bar',    tone: 'live' },
+  { id: 'team',         icon: 'users',    label: 'Team',         tone: 'accent' },
+  { id: 'testimonials', icon: 'message',  label: 'Testimonials', tone: 'live' },
+  { id: 'contact',      icon: 'mail',     label: 'Contact',      tone: 'accent' },
+  { id: 'media',        icon: 'image',    label: 'Media',        tone: 'live' },
+  { id: 'seo',          icon: 'search',   label: 'SEO',          tone: 'accent' },
+]
+
+function SectionCard({ id, icon, tone = 'accent', title, subtitle, children }) {
+  const tileBg = tone === 'live' ? theme.color.liveSoft : theme.color.accentSoft
+  const tileFg = tone === 'live' ? theme.color.live : theme.color.accent
   return (
-    <div style={{
+    <div id={id} style={{
       background: theme.color.surface, borderRadius: theme.radius.lg,
       boxShadow: theme.shadow.card, padding: '1.75rem', marginBottom: '1.25rem',
+      scrollMarginTop: '132px', // keeps the jumped-to card clear of the sticky nav + quick-nav rail
     }}>
       <div style={{
         display: 'flex', alignItems: 'flex-start', gap: '0.85rem',
@@ -47,7 +63,7 @@ function SectionCard({ icon, title, subtitle, children }) {
         {icon && (
           <div style={{
             width: '36px', height: '36px', borderRadius: theme.radius.sm, flexShrink: 0,
-            background: theme.color.accentSoft, color: theme.color.accent,
+            background: tileBg, color: tileFg,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <Icon name={icon} size={17} />
@@ -211,22 +227,47 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '2px', background: `linear-gradient(90deg, ${theme.color.accent}, ${theme.color.live})` }} />
         </nav>
 
+        {/* Section quick-nav — jump straight to a section instead of scrolling past everything */}
+        <div style={{
+          position: 'sticky', top: '60px', zIndex: 40,
+          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(6px)',
+          borderBottom: `1px solid ${theme.color.divider}`,
+        }}>
+          <div style={{ maxWidth: '820px', margin: '0 auto', padding: '0.6rem 2rem', display: 'flex', gap: '0.35rem', overflowX: 'auto' }}>
+            {SECTIONS.map(s => (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0,
+                  padding: '5px 11px', borderRadius: theme.radius.pill,
+                  fontSize: '0.78rem', fontWeight: 600, color: theme.color.inkSoft,
+                  textDecoration: 'none', whiteSpace: 'nowrap',
+                }}
+              >
+                <Icon name={s.icon} size={13} color={s.tone === 'live' ? theme.color.live : theme.color.accent} />
+                {s.label}
+              </a>
+            ))}
+          </div>
+        </div>
+
         <main style={{ maxWidth: '820px', margin: '0 auto', padding: '2rem 2rem 6rem' }}>
 
           {/* Admin impersonation banner */}
           {viewerRole === 'admin' && (
             <div style={{
-              background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: theme.radius.md,
+              background: theme.color.warnSoft, border: `1px solid ${theme.color.warnBorder}`, borderRadius: theme.radius.md,
               padding: '0.8rem 1.1rem', marginBottom: '1.5rem',
-              boxShadow: '0 1px 2px rgba(29,78,216,0.05), 0 8px 20px -10px rgba(29,78,216,0.2)',
+              boxShadow: '0 1px 2px rgba(180,83,9,0.05), 0 8px 20px -10px rgba(180,83,9,0.2)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem',
             }}>
-              <span style={{ color: '#1d4ed8', fontSize: '0.875rem', fontWeight: 500 }}>
+              <span style={{ color: theme.color.warn, fontSize: '0.875rem', fontWeight: 500 }}>
                 👁 Viewing as admin — changes here <em>are</em> saved to this client&apos;s account.
               </span>
               <button
                 onClick={handleExitImpersonation}
-                style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: theme.radius.sm, padding: '6px 14px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+                style={{ background: theme.color.warn, color: '#fff', border: 'none', borderRadius: theme.radius.sm, padding: '6px 14px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
               >
                 ← Back to Admin
               </button>
@@ -240,7 +281,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           </div>
 
           {/* CONTENT */}
-          <SectionCard icon="document" title="Content" subtitle="Core text that appears throughout your public website.">
+          <SectionCard id="content" icon="document" tone="accent" title="Content" subtitle="Core text that appears throughout your public website.">
             <Field label="Business Name" hint="Your official business name — appears in the nav, footer, and page title.">
               <input style={inp} value={form.businessName || ''} onChange={e => set('businessName', e.target.value)} placeholder="e.g. Apex Pain Clinic" />
             </Field>
@@ -290,7 +331,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           </SectionCard>
 
           {/* TRUST BAR */}
-          <SectionCard icon="shield" title="Trust Bar" subtitle="Short scrolling taglines shown right under your hero banner (up to 6). Leave empty to hide this bar.">
+          <SectionCard id="trust-bar" icon="shield" tone="live" title="Trust Bar" subtitle="Short scrolling taglines shown right under your hero banner (up to 6). Leave empty to hide this bar.">
             {(form.trustBarItems || []).map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.6rem', alignItems: 'center' }}>
                 <input style={{ ...inp, flex: 1 }} value={item || ''} onChange={e => setTrustBarItem(i, e.target.value)} placeholder="e.g. Trusted by 500+ Clients" />
@@ -303,7 +344,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           </SectionCard>
 
           {/* TEAM */}
-          <SectionCard icon="users" title="Team Members" subtitle="Up to 6 team members displayed on your site.">
+          <SectionCard id="team" icon="users" tone="accent" title="Team Members" subtitle="Up to 6 team members displayed on your site.">
             {(form.teamMembers || []).map((member, i) => (
               <div key={i} style={itemBox}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -335,7 +376,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           </SectionCard>
 
           {/* TESTIMONIALS */}
-          <SectionCard icon="message" title="Testimonials" subtitle="Up to 4 client or patient quotes.">
+          <SectionCard id="testimonials" icon="message" tone="live" title="Testimonials" subtitle="Up to 4 client or patient quotes.">
             {(form.testimonials || []).map((t, i) => (
               <div key={i} style={itemBox}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -361,7 +402,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           </SectionCard>
 
           {/* CONTACT */}
-          <SectionCard icon="mail" title="Contact" subtitle="Your publicly displayed contact information.">
+          <SectionCard id="contact" icon="mail" tone="accent" title="Contact" subtitle="Your publicly displayed contact information.">
             <Field label="Phone" hint="">
               <input style={inp} value={form.contactPhone || ''} onChange={e => set('contactPhone', e.target.value)} placeholder="e.g. (787) 555-0100" />
             </Field>
@@ -374,7 +415,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           </SectionCard>
 
           {/* MEDIA */}
-          <SectionCard icon="image" title="Media" subtitle="Image URLs for your logo and hero background.">
+          <SectionCard id="media" icon="image" tone="live" title="Media" subtitle="Image URLs for your logo and hero background.">
             <Field label="Logo" hint="Upload an image, or paste a URL if it's already hosted somewhere.">
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <input style={{ ...inp, flex: 1 }} value={form.logoUrl || ''} onChange={e => set('logoUrl', e.target.value)} placeholder="https://..." />
@@ -390,7 +431,7 @@ export default function ClientDashboard({ clientEmail, clientName, siteSlug, ini
           </SectionCard>
 
           {/* SEO */}
-          <SectionCard icon="search" title="SEO & Social" subtitle="Controls how your site appears in Google and social media previews.">
+          <SectionCard id="seo" icon="search" tone="accent" title="SEO & Social" subtitle="Controls how your site appears in Google and social media previews.">
             <Field label="Page Title" hint="Shows in the browser tab and Google results. Ideal: 50–60 characters.">
               <input style={inp} value={form.seoTitle || ''} onChange={e => set('seoTitle', e.target.value)} placeholder="e.g. Apex Pain Clinic — Pain Management in Puerto Rico" />
             </Field>
