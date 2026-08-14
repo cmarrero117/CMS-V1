@@ -8,9 +8,12 @@ import { authOptions } from '../../lib/authOptions'
 import { parse as parseCookies } from 'cookie'
 import dbConnect from '../../lib/db'
 import SiteContent from '../../lib/models/SiteContent'
+import SiteSchema from '../../lib/models/SiteSchema'
+import SiteData from '../../lib/models/SiteData'
 import Tenant from '../../lib/models/Tenant'
 import ImageUploadButton from '../../components/ImageUploadButton'
 import Icon from '../../components/Icon'
+import DynamicDashboard from '../../components/dynamic/DynamicDashboard'
 import { theme } from '../../lib/theme'
 
 const inp = {
@@ -79,7 +82,24 @@ function SectionCard({ id, icon, tone = 'accent', title, subtitle, children }) {
   )
 }
 
-export default function ClientDashboard({ clientEmail, clientName, siteSlug, initialContent, viewerRole }) {
+export default function ClientDashboard({ clientEmail, clientName, siteSlug, initialContent, viewerRole, dynamicSchema, dynamicData }) {
+  // Dynamic tenants (identified by having a SiteSchema doc) get a fully
+  // schema-driven dashboard instead of this fixed one. Early return
+  // before any hooks below — dynamicSchema is a stable SSR prop for the
+  // lifetime of this mount, so which branch runs never changes mid-render.
+  if (dynamicSchema) {
+    return (
+      <DynamicDashboard
+        schema={dynamicSchema}
+        initialData={dynamicData || {}}
+        siteSlug={siteSlug}
+        clientEmail={clientEmail}
+        clientName={clientName}
+        viewerRole={viewerRole}
+      />
+    )
+  }
+
   const router = useRouter()
   const [form, setForm] = useState(initialContent)
   const [saveState, setSaveState] = useState('idle')
@@ -508,6 +528,19 @@ export async function getServerSideProps(context) {
     return { redirect: { destination: session.user.role === 'admin' ? '/admin' : '/login', permanent: false } }
   }
 
+  // Dynamic tenants have a SiteSchema doc; its mere presence is the
+  // mode flag — no migration or field on Tenant needed. demo-dental,
+  // test-qa, and any tenant without one always fall through untouched
+  // to the fixed SiteContent path below.
+  const schemaDoc = await SiteSchema.findOne({ tenantId: tenant._id }).lean()
+  let dynamicSchema = null
+  let dynamicData = null
+  if (schemaDoc) {
+    const dataDoc = await SiteData.findOne({ tenantId: tenant._id }).lean()
+    dynamicSchema = schemaDoc.sections || []
+    dynamicData = dataDoc?.data || {}
+  }
+
   const existing = await SiteContent.findOne({ tenantId: tenant._id }).lean()
 
   const initialContent = {
@@ -549,6 +582,6 @@ export async function getServerSideProps(context) {
   }
 
   return {
-    props: { clientEmail, clientName, siteSlug: tenant.slug, initialContent, viewerRole: session.user.role }
+    props: { clientEmail, clientName, siteSlug: tenant.slug, initialContent, viewerRole: session.user.role, dynamicSchema, dynamicData }
   }
 }
